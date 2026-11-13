@@ -1,0 +1,160 @@
+/* NBA Tier Lists. The NBA Polymarket tracker's look (MARKET_UI_CSS in
+   hoopsmatic-worker): light surfaces, 12px panels, DM Sans for words and
+   JetBrains Mono for figures. No eyebrows: no small uppercase kicker above a
+   title. Mobile first: base rules are the phone layout. */
+@font-face { font-family: "DM Sans"; font-style: normal; font-weight: 100 1000; font-display: swap; src: url("/tier-lists/fonts/dm-sans-latin-wght-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "JetBrains Mono"; font-style: normal; font-weight: 100 800; font-display: swap; src: url("/tier-lists/fonts/jetbrains-mono-latin-wght-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+:root{
+  --bg:#f5f5f7;--surface:#fff;--surface-hover:#f0f0f2;--border:#d1d1d6;
+  --text:#1d1d1f;--text-secondary:#6e6e73;--accent:#3b82f6;--accent-dim:rgba(59,130,246,.15);
+  --green:#1d8a40;--red:#d12c2c;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --head-bg:#e6e6ea;   /* the light grey behind every headshot */
+  --tS:#d12c2c;--tA:#e07a10;--tB:#c29a00;--tC:#1d8a40;--tD:#3b82f6;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);
+  line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:900px;margin:0 auto;padding:1rem 1rem 3rem}
+.hide{display:none!important}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.mono{font-family:var(--mono)}
+
+/* Header */
+.tabs{display:flex;gap:.25rem;margin-bottom:.9rem;flex-wrap:wrap}
+.tabs a{font-size:.8125rem;font-weight:600;padding:.25rem .75rem;border-radius:999px;color:var(--text-secondary)}
+.tabs a:hover{background:rgba(127,127,127,.12);text-decoration:none}
+.tabs a.on{background:var(--accent-dim);color:var(--accent)}
+h1{font-size:1.35rem;font-weight:700;letter-spacing:-.03em;line-height:1.2}
+.subtitle{color:var(--text-secondary);font-size:.85rem;margin:.3rem 0 .9rem;max-width:60rem}
+.subtitle b{color:var(--text);font-weight:600}
+
+/* Panels */
+.section{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.8rem .85rem;margin-top:.75rem}
+.section-head{display:flex;justify-content:space-between;align-items:baseline;gap:.75rem;margin-bottom:.55rem}
+.section-head h2{font-size:.95rem;font-weight:700;letter-spacing:-.01em}
+.count{font-family:var(--mono);font-size:.74rem;color:var(--text-secondary);white-space:nowrap}
+.msg{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.1rem;font-size:.875rem;color:var(--text-secondary);margin-top:.75rem}
+.msg b{display:block;color:var(--text);font-weight:700;margin-bottom:.25rem;font-size:.95rem}
+.msg .btn{margin-top:.75rem}
+.note{font-size:.78rem;color:var(--text-secondary);margin-top:.5rem}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;font:inherit;font-weight:700;font-size:.9rem;padding:.6rem 1rem;
+  border:0;border-radius:10px;background:var(--accent);color:#fff;cursor:pointer;text-decoration:none}
+.btn:hover{text-decoration:none;filter:brightness(1.05)}
+.btn:disabled{background:var(--border);color:var(--text-secondary);cursor:default;filter:none}
+.btn.ghost{background:var(--surface);color:var(--text);border:1px solid var(--border)}
+.linkbtn{font:inherit;font-size:.8rem;background:none;border:0;color:var(--accent);cursor:pointer;padding:0}
+
+/* The headshot frame (Puzzle Maker's): a light-grey panel at the NBA.com
+   cutout's own aspect (260x190), the cutout bottom-aligned, never scaled past
+   the panel, so every player is head to shoulders at the same size. With no
+   real photo the frame holds the name instead: never initials, never an
+   empty circle. */
+.ph{position:relative;display:block;width:100%;aspect-ratio:260/190;background:var(--head-bg);overflow:hidden;border-radius:6px}
+.ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center bottom;display:block;pointer-events:none}
+.ph.nophoto{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2px 3px;text-align:center;line-height:1.05}
+.ph.nophoto .fn{font-size:.56rem;color:var(--text-secondary);font-weight:500;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ph.nophoto .ln{font-size:.66rem;font-weight:700;color:var(--text);max-width:100%;overflow-wrap:anywhere}
+
+/* Tiles: a frame and the last name under it (inside the frame when there is
+   no photo). */
+.tile{width:62px;display:flex;flex-direction:column;align-items:stretch;gap:2px;border-radius:8px;padding:2px;
+  color:var(--text);user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;cursor:pointer;background:none;border:0;font:inherit;text-align:center}
+a.tile:hover{text-decoration:none}
+a.tile:hover .ph{box-shadow:0 0 0 2px var(--accent)}
+.tile .nm{font-size:.62rem;font-weight:600;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tile .ph.nophoto + .nm{display:none}
+.tile .ph.nophoto{aspect-ratio:auto;height:calc((62px - 4px) * 190 / 260 + 15px)}
+.tile .avg{font-family:var(--mono);font-size:.6rem;color:var(--text-secondary);font-weight:600}
+.tile.sel{background:var(--accent-dim)}
+.tile.sel .ph{box-shadow:0 0 0 2px var(--accent)}
+.tile.ghost{opacity:.3}
+.drag-img{position:fixed;z-index:50;pointer-events:none;transform:translate(-50%,-60%) scale(1.08);
+  filter:drop-shadow(0 6px 10px rgba(0,0,0,.18))}
+
+/* The tier board */
+.board{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.tier{display:grid;grid-template-columns:42px 1fr;border-bottom:1px solid var(--border);min-height:66px}
+.tier:last-child{border-bottom:none}
+.tier .lbl{display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:1.15rem;color:#fff}
+.tier .drop{display:flex;flex-wrap:wrap;gap:.25rem;padding:.35rem;align-content:flex-start;transition:background .12s;min-width:0}
+.board.edit .tier{cursor:pointer}
+.tier.target .drop{background:var(--accent-dim)}
+.board.armed .tier .drop{background:rgba(59,130,246,.05);outline:1px dashed rgba(59,130,246,.55);outline-offset:-4px}
+.tier .empty{font-size:.74rem;color:var(--text-secondary);align-self:center;padding:0 .3rem}
+
+/* Selected player (ranking): where his HoopsMatic link lives, so a tap on a
+   tile can mean "pick up" without fighting a link. */
+.selbar{display:flex;align-items:center;gap:.6rem;background:var(--surface);border:1px solid var(--accent);
+  border-radius:12px;padding:.45rem .7rem;margin-top:.6rem;font-size:.82rem}
+.selbar .ph{width:52px;flex:0 0 auto}
+.selbar .who{min-width:0;flex:1;line-height:1.25}
+.selbar .who a{font-weight:700;display:block;color:var(--text)}
+.selbar .who small{color:var(--text-secondary);font-size:.74rem}
+.selbar .act{display:flex;flex-direction:column;align-items:flex-end;gap:.15rem}
+.selbar .hint{font-size:.74rem;color:var(--accent);font-weight:600;white-space:nowrap}
+
+.pool{display:flex;flex-wrap:wrap;gap:.25rem;min-height:60px;border-radius:8px}
+.pool.target{background:var(--accent-dim)}
+.pool .done{font-size:.82rem;color:var(--green);font-weight:600;padding:.4rem}
+
+/* Publish */
+.publish{display:grid;gap:.5rem;margin-top:.75rem}
+.publish input{font:inherit;font-size:.9rem;padding:.6rem .75rem;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);min-width:0}
+.publish .err{color:var(--red)}
+.tools{display:flex;justify-content:space-between;align-items:center;gap:.75rem;margin-top:.5rem}
+
+/* The template list */
+.group{margin-top:1.25rem}
+.group h2{font-size:.95rem;font-weight:700;letter-spacing:-.01em;margin-bottom:.5rem}
+.cards{display:grid;grid-template-columns:1fr;gap:.5rem}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.75rem .85rem;display:flex;flex-direction:column;gap:.45rem}
+.card h3{font-size:.95rem;font-weight:700;line-height:1.25}
+.card h3 a{color:var(--text)}
+.card .faces{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
+.card .meta{display:flex;justify-content:space-between;align-items:center;gap:.5rem;font-size:.76rem;color:var(--text-secondary)}
+.card .meta .links{display:flex;gap:.75rem;font-weight:600}
+
+/* Consensus rows */
+.rows{display:flex;flex-direction:column}
+.row{display:grid;grid-template-columns:1.6rem 52px 1fr auto;align-items:center;gap:.6rem;padding:.45rem 0;border-bottom:1px solid var(--border);font-size:.86rem}
+.row:last-child{border-bottom:none}
+.row .rk{color:var(--text-secondary);font-family:var(--mono);font-size:.74rem;text-align:right}
+.row .nm{min-width:0;font-weight:600;overflow-wrap:anywhere}
+.row .nm a{color:var(--text)}
+.row .nm small{display:block;font-weight:500;font-size:.74rem;color:var(--text-secondary)}
+.row .v{font-family:var(--mono);font-weight:600;text-align:right;white-space:nowrap}
+.row .v small{display:block;font-size:.68rem;color:var(--text-secondary);font-weight:500}
+.chip{display:inline-flex;align-items:center;justify-content:center;width:1.4rem;height:1.4rem;border-radius:5px;color:#fff;font-family:var(--mono);font-weight:700;font-size:.74rem;margin-right:.35rem;vertical-align:middle}
+
+/* The 73-9 game's share block, inline (never a modal) */
+.share-box{display:flex;flex-direction:column;align-items:center;gap:14px}
+.share-img{width:100%;max-width:520px;aspect-ratio:1;object-fit:contain;border-radius:12px;border:1px solid var(--border);background:var(--surface-hover)}
+.share-link{display:flex;width:100%;gap:8px}
+.share-url{flex:1;min-width:0;background:var(--surface-hover);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--mono);font-size:12px;padding:10px 12px}
+.share-copybtn{flex:0 0 auto;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:0 16px;font:inherit;font-weight:700;font-size:14px;cursor:pointer}
+.share-social{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}
+.soc{display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 6px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.soc svg{width:16px;height:16px;flex:0 0 auto}
+.soc:hover{border-color:var(--accent);color:var(--accent)}
+.share-btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.share-msg{font-family:var(--mono);font-size:12px;color:var(--green);min-height:16px;text-align:center}
+
+.site-foot{font-size:.78rem;color:var(--text-secondary);margin-top:2rem;padding-top:1rem;border-top:1px solid var(--border);line-height:1.7}
+
+@media (min-width:600px){
+  .tile{width:72px}.tile .nm{font-size:.68rem}
+  .tile .ph.nophoto{height:calc((72px - 4px) * 190 / 260 + 16px)}
+  .ph.nophoto .ln{font-size:.72rem}
+  .tier{grid-template-columns:54px 1fr;min-height:80px}
+  h1{font-size:1.6rem}
+  .publish{grid-template-columns:1fr auto}
+  .cards{grid-template-columns:1fr 1fr}
+}
+@media (min-width:861px){ .wrap{padding:1.5rem 1.5rem 4rem} .cards{grid-template-columns:1fr 1fr 1fr} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}

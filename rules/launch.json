@@ -1,0 +1,4 @@
+{
+ "_about": "NBA Tier Lists' public launch moment (Jorge: no date yet). null = not launched: every page is noindex and Tier Lists is not in the menu, the games/tools roster or a sitemap. To launch, set the same day here and in hoopsmatic-worker (TIER_LISTS_LAUNCH in src/index.js); everything switches on by itself at 9:00 AM ET that day. scripts/build.mjs copies it to public/config.json.",
+ "launch": null
+}

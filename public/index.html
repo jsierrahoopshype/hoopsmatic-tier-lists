@@ -3,224 +3,41 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<!-- noindex until Jorge approves. Consensus pages will drop it at launch;
-     individual user lists keep it for good. -->
-<meta name="robots" content="noindex">
-<title>Best point guards of the 2010s tier list | HoopsMatic</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
-<style>
-/* Tokens from the NBA Polymarket tracker (MARKET_UI_CSS in hoopsmatic-worker).
-   Mobile first: base rules are the phone layout. No eyebrows. */
-:root{
-  --bg:#f5f5f7;--surface:#fff;--surface-hover:#f0f0f2;--border:#d1d1d6;
-  --text:#1d1d1f;--text-secondary:#6e6e73;--accent:#3b82f6;--accent-dim:rgba(59,130,246,.15);
-  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
-  --head-bg:#e9e9ed;   /* light grey behind every headshot */
-  --tS:#d12c2c;--tA:#e07a10;--tB:#c9a400;--tC:#1d8a40;--tD:#3b82f6;
-}
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);
-  line-height:1.5;-webkit-font-smoothing:antialiased}
-a{color:var(--accent);text-decoration:none}
-.wrap{max-width:860px;margin:0 auto;padding:1rem 1rem 3rem}
-.hdr h1{font-size:1.35rem;font-weight:700;letter-spacing:-.03em;line-height:1.2}
-.subtitle{color:var(--text-secondary);font-size:.85rem;margin:.25rem 0 .9rem}
-.tabs{display:flex;gap:.25rem;margin-bottom:.9rem}
-.tabs a{font-size:.8125rem;font-weight:600;padding:.25rem .75rem;border-radius:999px;color:var(--text-secondary)}
-.tabs a.on{background:var(--accent-dim);color:var(--accent)}
-
-/* Tier board */
-.board{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
-.tier{display:grid;grid-template-columns:44px 1fr;border-bottom:1px solid var(--border);min-height:64px}
-.tier:last-child{border-bottom:none}
-.tier .lbl{display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;
-  font-size:1.15rem;color:#fff}
-.tier .drop{display:flex;flex-wrap:wrap;gap:.35rem;padding:.4rem;align-content:flex-start;transition:background .12s}
-.tier.target .drop{background:var(--accent-dim)}
-.tier.armed .drop{background:rgba(59,130,246,.06);outline:1px dashed rgba(59,130,246,.5);outline-offset:-4px}
-
-/* Player chip: headshot on light grey + short name. Tap selects, drag moves. */
-.chip{width:56px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:grab;
-  touch-action:none;user-select:none;-webkit-user-select:none;border-radius:10px;padding:2px 0}
-.chip .face{width:48px;height:48px;border-radius:50%;background:var(--head-bg);overflow:hidden}
-.chip .face img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block;pointer-events:none}
-.chip .face.nba img{object-fit:cover;object-position:center 15%;transform:scale(1.2) translateY(6%)}
-.chip .nm{font-size:.62rem;font-weight:600;line-height:1.1;text-align:center;max-width:56px;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.chip.sel{background:var(--accent-dim)}
-.chip.sel .face{box-shadow:0 0 0 2px var(--accent)}
-.chip.ghost{opacity:.3}
-.drag-img{position:fixed;z-index:50;pointer-events:none;transform:translate(-50%,-60%) scale(1.08);
-  filter:drop-shadow(0 6px 10px rgba(0,0,0,.18))}
-
-/* Selected player bar: where the player's HoopsMatic link lives, so a tap
-   on a chip can mean "pick up" without fighting a link. */
-.selbar{display:none;align-items:center;gap:.6rem;background:var(--surface);border:1px solid var(--accent);
-  border-radius:12px;padding:.5rem .75rem;margin:.6rem 0 0;font-size:.82rem}
-.selbar.on{display:flex}
-.selbar .face{width:32px;height:32px;border-radius:50%;background:var(--head-bg);overflow:hidden;flex-shrink:0}
-.selbar .face img{width:100%;height:100%;object-fit:cover;object-position:center top}
-.selbar .who{min-width:0;flex:1;line-height:1.25}
-.selbar .who b{display:block}
-.selbar .who small{color:var(--text-secondary);font-size:.74rem}
-.selbar .hint{font-size:.74rem;color:var(--accent);font-weight:600;white-space:nowrap}
-
-/* Pool */
-.section{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.75rem .8rem;margin-top:.75rem}
-.section-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:.5rem}
-.section-head h2{font-size:.95rem;font-weight:700;letter-spacing:-.01em}
-.count{font-family:var(--mono);font-size:.74rem;color:var(--text-secondary)}
-.pool{display:flex;flex-wrap:wrap;gap:.35rem;min-height:60px}
-.pool.target{background:var(--accent-dim);border-radius:8px}
-
-/* Publish */
-.publish{margin-top:.75rem;display:grid;gap:.5rem}
-.publish input{font:inherit;font-size:.9rem;padding:.6rem .75rem;border:1px solid var(--border);border-radius:10px;background:var(--surface)}
-.publish button{font:inherit;font-weight:700;font-size:.95rem;padding:.7rem;border:0;border-radius:10px;
-  background:var(--accent);color:#fff;cursor:pointer}
-.publish button:disabled{background:var(--border);color:var(--text-secondary);cursor:default}
-.note{font-size:.76rem;color:var(--text-secondary)}
-
-.site-foot{font-size:.78rem;color:var(--text-secondary);margin-top:2rem;padding-top:1rem;border-top:1px solid var(--border);line-height:1.7}
-@media (min-width:600px){
-  .chip{width:64px}.chip .face{width:56px;height:56px}.chip .nm{max-width:64px;font-size:.68rem}
-  .tier{grid-template-columns:56px 1fr;min-height:76px}
-  .hdr h1{font-size:1.6rem}
-  .publish{grid-template-columns:1fr auto}
-}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
-</style>
+<title>NBA Tier Lists: rank the players, see the fans’ consensus | HoopsMatic</title>
+<meta name="description" content="Rank NBA players in S, A, B, C and D tiers: MVP race, best point guards of the 2010s, Celtics all-time and more. Publish your list and compare it with the fans.">
+<!-- Search: hoopsmatic-worker decides indexing with an X-Robots-Tag header
+     (tierListsNoindex): every page is noindex until the launch moment; after
+     it, the main page and each consensus page with 25+ lists are indexable,
+     and a reader's own list (?l=) never is. This file is built by
+     scripts/build.mjs from scripts/page.html; do not edit it by hand. -->
+<link rel="canonical" href="https://hoopsmatic.com/tier-lists/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="HoopsMatic">
+<meta property="og:title" content="NBA Tier Lists: rank the players">
+<meta property="og:description" content="Rank NBA players in S, A, B, C and D tiers: MVP race, best point guards of the 2010s, Celtics all-time and more. Publish your list and compare it with the fans.">
+<meta property="og:url" content="https://hoopsmatic.com/tier-lists/">
+<meta property="og:image" content="https://hoopsmatic.com/tier-lists/og-card">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="NBA Tier Lists by HoopsMatic: rank players in S, A, B, C and D tiers">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://hoopsmatic.com/tier-lists/og-card">
+<meta name="theme-color" content="#f5f5f7">
+<link rel="preload" href="/tier-lists/fonts/dm-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/tier-lists/style.css?v=e3dbe4cf2f">
 </head>
-<body>
+<body data-page="home" data-slug="">
 <div class="wrap">
-  <nav class="tabs" aria-label="Tier list views">
-    <a class="on" href="#">Your list</a>
-    <a href="#">Fans' consensus</a>
-  </nav>
-  <div class="hdr"><h1 id="title">Best point guards of the 2010s</h1></div>
-  <p class="subtitle">Drag players into tiers, or tap a player and then a tier. Seasons 2010-11 to 2019-20; teams as they were then.</p>
-
-  <div class="board" id="board"></div>
-  <div class="selbar" id="selbar" aria-live="polite"></div>
-
-  <section class="section">
-    <div class="section-head"><h2>Players</h2><span class="count" id="count"></span></div>
-    <div class="pool" id="pool" data-tier=""></div>
-  </section>
-
-  <div class="publish">
-    <input id="listname" maxlength="40" placeholder="Name your list (optional)" aria-label="List name">
-    <button id="pub" disabled>Publish</button>
-  </div>
-  <p class="note" id="pubnote">Place every player to publish. Your list gets its own link and a share image.</p>
-
-  <footer class="site-foot">
-    <div>Anything wrong? Email us at <a href="mailto:hoopsmatic@hoopsmatic.com">hoopsmatic@hoopsmatic.com</a></div>
-    <div>For any other inquiry, contact us at <a href="mailto:ads@hoopsmatic.com">ads@hoopsmatic.com</a></div>
-  </footer>
+<main id="app">
+<h1>NBA Tier Lists</h1>
+<p class="subtitle">Rank NBA players in S, A, B, C and D tiers, publish your list and see where the fans land.</p>
+<ul class="plain"><li><a href="https://hoopsmatic.com/tier-lists/2026-27-mvp-race/">2026-27 MVP race</a></li><li><a href="https://hoopsmatic.com/tier-lists/2026-27-rookie-of-the-year-race/">2026-27 Rookie of the Year race</a></li><li><a href="https://hoopsmatic.com/tier-lists/best-players-right-now/">Best players in the NBA right now</a></li><li><a href="https://hoopsmatic.com/tier-lists/best-young-players/">Best players 23 and under</a></li><li><a href="https://hoopsmatic.com/tier-lists/best-players-of-the-1980s/">Best players of the 1980s</a></li><li><a href="https://hoopsmatic.com/tier-lists/best-players-of-the-1990s/">Best players of the 1990s</a></li><li><a href="https://hoopsmatic.com/tier-lists/best-players-of-the-2000s/">Best players of the 2000s</a></li><li><a href="https://hoopsmatic.com/tier-lists/best-point-guards-of-the-2010s/">Best point guards of the 2010s</a></li><li><a href="https://hoopsmatic.com/tier-lists/best-centers-of-the-1990s/">Best centers of the 1990s</a></li><li><a href="https://hoopsmatic.com/tier-lists/best-forwards-of-the-2000s/">Best forwards of the 2000s</a></li><li><a href="https://hoopsmatic.com/tier-lists/best-point-guards-of-all-time/">Best point guards of all time</a></li><li><a href="https://hoopsmatic.com/tier-lists/best-centers-of-all-time/">Best centers of all time</a></li><li><a href="https://hoopsmatic.com/tier-lists/best-three-point-shooters-of-all-time/">Best three-point shooters of all time</a></li><li><a href="https://hoopsmatic.com/tier-lists/best-defenders-of-all-time/">Best defenders of all time</a></li><li><a href="https://hoopsmatic.com/tier-lists/best-international-players-of-all-time/">Best international players of all time</a></li><li><a href="https://hoopsmatic.com/tier-lists/celtics-all-time/">Celtics all-time</a></li><li><a href="https://hoopsmatic.com/tier-lists/lakers-all-time/">Lakers all-time</a></li><li><a href="https://hoopsmatic.com/tier-lists/bulls-all-time/">Bulls all-time</a></li><li><a href="https://hoopsmatic.com/tier-lists/warriors-all-time/">Warriors all-time</a></li><li><a href="https://hoopsmatic.com/tier-lists/knicks-all-time/">Knicks all-time</a></li><li><a href="https://hoopsmatic.com/tier-lists/spurs-all-time/">Spurs all-time</a></li><li><a href="https://hoopsmatic.com/tier-lists/heat-all-time/">Heat all-time</a></li><li><a href="https://hoopsmatic.com/tier-lists/mavericks-all-time/">Mavericks all-time</a></li><li><a href="https://hoopsmatic.com/tier-lists/2003-draft-class/">2003 draft class</a></li><li><a href="https://hoopsmatic.com/tier-lists/1996-draft-class/">1996 draft class</a></li></ul>
+</main>
+<footer class="site-foot">
+  <div>Anything wrong? Email us at <a href="mailto:hoopsmatic@hoopsmatic.com">hoopsmatic@hoopsmatic.com</a></div>
+  <div>For any other inquiry, contact us at <a href="mailto:ads@hoopsmatic.com">ads@hoopsmatic.com</a></div>
+</footer>
 </div>
-
-<script>
-(() => {
-  const HEADS = 'https://jsierrahoopshype.github.io/nba-headshots/players/headshots/face-fill/';
-  const NBA_HEADS = 'https://cdn.nba.com/headshots/nba/latest/260x190/';
-  const $ = (id) => document.getElementById(id);
-  const short = (n) => { const p = n.split(' '); return p.length > 1 ? p.slice(1).join(' ') : n; };
-  const src = (h) => (h.startsWith('n:') ? NBA_HEADS + h.slice(2) + '.png' : HEADS + h.replace(/^f:/, '') + '.webp');
-
-  let T, place = {}, sel = null;
-
-  function chip(p) {
-    const c = document.createElement('div');
-    c.className = 'chip' + (sel === p.id ? ' sel' : '');
-    c.dataset.id = p.id;
-    c.setAttribute('role', 'button'); c.tabIndex = 0;
-    c.setAttribute('aria-label', p.name + ', ' + p.team);
-    const f = document.createElement('div'); f.className = 'face' + (p.head.startsWith('n:') ? ' nba' : '');
-    const im = new Image(); im.alt = ''; im.loading = 'lazy'; im.src = src(p.head); f.append(im);
-    const n = document.createElement('div'); n.className = 'nm'; n.textContent = short(p.name);
-    c.append(f, n);
-    return c;
-  }
-
-  function render() {
-    const board = $('board'); board.textContent = '';
-    for (const t of T.tiers) {
-      const row = document.createElement('div'); row.className = 'tier' + (sel ? ' armed' : ''); row.dataset.tier = t;
-      const l = document.createElement('div'); l.className = 'lbl'; l.style.background = `var(--t${t})`; l.textContent = t;
-      const d = document.createElement('div'); d.className = 'drop'; d.dataset.tier = t;
-      for (const p of T.pool) if (place[p.id] === t) d.append(chip(p));
-      row.append(l, d); board.append(row);
-    }
-    const pool = $('pool'); pool.textContent = '';
-    for (const p of T.pool) if (!place[p.id]) pool.append(chip(p));
-    const left = T.pool.filter((p) => !place[p.id]).length;
-    $('count').textContent = `${T.pool.length - left} of ${T.pool.length} ranked`;
-    $('pub').disabled = left > 0;
-    $('pubnote').textContent = left ? 'Place every player to publish. Your list gets its own link and a share image.' : 'Ready. Your list gets its own link and a share image.';
-    const sb = $('selbar');
-    const p = sel && T.pool.find((x) => x.id === sel);
-    sb.classList.toggle('on', !!p); sb.textContent = '';
-    if (p) {
-      const f = document.createElement('div'); f.className = 'face'; const im = new Image(); im.alt = ''; im.src = src(p.head); f.append(im);
-      const w = document.createElement('div'); w.className = 'who';
-      const a = document.createElement('a'); a.href = p.link; a.textContent = p.name; a.style.fontWeight = 700; a.style.display = 'block';
-      const s = document.createElement('small'); s.textContent = p.team; w.append(a, s);
-      const h = document.createElement('span'); h.className = 'hint'; h.textContent = 'Tap a tier';
-      sb.append(f, w, h);
-    }
-  }
-
-  const move = (id, tier) => { if (tier) place[id] = tier; else delete place[id]; sel = null; render(); };
-
-  // Tap to place: tap a chip to select it, then tap a tier (or the pool to send it back).
-  document.addEventListener('click', (e) => {
-    if (dragged) return;
-    const c = e.target.closest('.chip');
-    if (c) { sel = sel === c.dataset.id ? null : c.dataset.id; render(); return; }
-    const zone = e.target.closest('.tier, .pool');
-    if (sel && zone) move(sel, zone.dataset.tier || '');
-  });
-
-  // Drag with pointer events (mouse and touch). A move of 6px+ starts a drag;
-  // less than that is a tap.
-  let start = null, dragged = false, ghost = null;
-  document.addEventListener('pointerdown', (e) => {
-    const c = e.target.closest('.chip'); if (!c) return;
-    start = { x: e.clientX, y: e.clientY, c, id: c.dataset.id }; dragged = false;
-  });
-  document.addEventListener('pointermove', (e) => {
-    if (!start) return;
-    if (!dragged && Math.hypot(e.clientX - start.x, e.clientY - start.y) < 6) return;
-    if (!dragged) { dragged = true; ghost = start.c.cloneNode(true); ghost.className = 'chip drag-img'; document.body.append(ghost); start.c.classList.add('ghost'); }
-    ghost.style.left = e.clientX + 'px'; ghost.style.top = e.clientY + 'px';
-    document.querySelectorAll('.target').forEach((x) => x.classList.remove('target'));
-    const z = document.elementFromPoint(e.clientX, e.clientY)?.closest('.tier, .pool'); if (z) z.classList.add('target');
-  });
-  document.addEventListener('pointerup', (e) => {
-    if (!start) return;
-    if (dragged) {
-      ghost.remove(); document.querySelectorAll('.target').forEach((x) => x.classList.remove('target'));
-      const z = document.elementFromPoint(e.clientX, e.clientY)?.closest('.tier, .pool');
-      if (z) move(start.id, z.dataset.tier || ''); else render();
-      setTimeout(() => { dragged = false; }, 0);
-    }
-    start = null;
-  });
-
-  fetch('template.json').then((r) => r.json()).then((t) => {
-    T = t;
-    // Demo state for the step-1 screenshot (?demo): a list in progress.
-    if (location.search.includes('demo')) {
-      const D = { 'stephen-curry': 'S', 'chris-paul': 'S', 'russell-westbrook': 'A', 'james-harden': 'S', 'damian-lillard': 'A',
-        'kyrie-irving': 'B', 'kyle-lowry': 'B', 'tony-parker': 'B', 'john-wall': 'C', 'rajon-rondo': 'C', 'mike-conley': 'C', 'elfrid-payton': 'D' };
-      for (const [k, v] of Object.entries(D)) if (T.pool.some((p) => p.id === k)) place[k] = v;
-      sel = 'jrue-holiday';
-    }
-    render();
-  });
-})();
-</script>
+<script src="/tier-lists/app.js?v=e3dbe4cf2f" defer></script>
 </body>
 </html>
