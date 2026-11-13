@@ -1,0 +1,72 @@
+Tier Lists: hand edits to the data-built pools (rules/edits.json), for approval before launch.
+
+Best point guards of the 2010s
+  + add Kemba Walker: Four-time All-Star point guard in the 2010s; cut by the 5.5-assist line.
+  + add Isaiah Thomas: Fifth in 2016-17 MVP voting; cut by the 5.5-assist line.
+  + add Derrick Rose: 2010-11 MVP; listed as G with 5.2 career assists, so the filter missed him.
+  + add Ben Simmons: Three-time All-Star point guard (2019-21); listed G-F in the data.
+  - remove Elfrid Payton: Never an All-Star.
+  - remove Jose Calderon: Never an All-Star; best years were the late 2000s.
+  - remove Andre Miller: Best years were the 2000s.
+  - remove Brandon Jennings: Never an All-Star.
+
+Best point guards of all time
+  + add Chauncey Billups: Five-time All-Star, 2004 Finals MVP.
+  + add Kevin Johnson: Five-time All-NBA point guard with the Suns.
+  - remove Clyde Drexler: A shooting guard; the data lists him as G.
+
+Best three-point shooters of all time
+  + add Steve Kerr: Highest career three-point percentage in NBA history (45.4%).
+  + add Predrag Stojakovic: Two-time Three-Point Contest winner, 40.1% career.
+  + add Dale Ellis: First player to 1,000 career threes, 40.3%.
+  + add Glen Rice: 1995 Three-Point Contest winner, 40.0% career.
+  + add Dell Curry: 40.2% career, Sixth Man of the Year as a shooter.
+  + add Duncan Robinson: A three-point specialist: most of his shots are threes.
+  - remove LeBron James: Volume from a long career, not a three-point specialist.
+  - remove Jason Kidd: Volume from a long career, 34.9% from three.
+  - remove Vince Carter: Volume from 22 seasons, 37.1% from three.
+  - remove Paul Pierce: A scorer more than a shooter, 36.8% from three.
+  - remove Joe Johnson: A scorer more than a shooter, 37.1% from three.
+  - remove Jamal Crawford: Volume from a long career, 34.8% from three.
+
+Best defenders of all time
+  + add Bill Russell: All-Defensive teams began in his last season (1968-69); 11 titles anchoring the defense.
+  + add Bruce Bowen: Eight All-Defensive teams.
+  + add Tony Allen: Six All-Defensive teams.
+
+Best centers of the 1990s
+  + add Vlade Divac: Starting center all decade (Lakers, Hornets, Kings).
+  + add Arvydas Sabonis: Blazers center from 1995-96.
+  + add Rony Seikaly: Starting center for the Heat and Warriors.
+  + add Bill Cartwright: Starting center on three Bulls title teams.
+  - remove Robert Horry: A forward; the data lists him as F-C.
+  - remove Horace Grant: A power forward; the data lists him as F-C.
+  - remove Will Perdue: Backup center; makes room for starters.
+  - remove Danny Manning: A forward; the data lists him as F-C.
+  - remove Derrick Coleman: A power forward; the data lists him as F-C.
+  - remove Christian Laettner: A power forward; the data lists him as F-C.
+
+Best centers of all time
+  + add George Mikan: The first dominant center: five titles with the Minneapolis Lakers.
+  + add Artis Gilmore: Hall of Fame center, 11 ABA/NBA All-Star games.
+  + add Yao Ming: Eight-time All-Star, Hall of Fame.
+  - remove LaMarcus Aldridge: Mostly a power forward.
+
+Best forwards of the 2000s
+  + add Rashard Lewis: Two-time All-Star forward in the 2000s.
+  - remove Kobe Bryant: A guard; the data lists him as G-F.
+
+Best international players of all time
+  + add Arvydas Sabonis: Lithuanian Hall of Famer.
+  + add Drazen Petrovic: Croatian Hall of Famer, All-NBA in 1993.
+  + add Toni Kukoc: Croatian Hall of Famer, three titles with the Bulls.
+  + add Predrag Stojakovic: Serbian three-time All-Star.
+  - remove Carlos Boozer: Born on a U.S. military base in Germany; raised in Alaska.
+  - remove Dominique Wilkins: Born in Paris to a U.S. military family; raised in the U.S.
+
+Heat all-time
+  - remove Joel Anthony: Minutes, not impact.
+  - remove Norris Cole: Minutes, not impact.
+
+Spurs all-time
+  - remove Matt Bonner: Minutes, not impact.

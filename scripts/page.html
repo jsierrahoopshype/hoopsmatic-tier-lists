@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}}</title>
+<meta name="description" content="{{DESC}}">
+<!-- Search: hoopsmatic-worker decides indexing with an X-Robots-Tag header
+     (tierListsNoindex): every page is noindex until the launch moment; after
+     it, the main page and each consensus page with 25+ lists are indexable,
+     and a reader's own list (?l=) never is. This file is built by
+     scripts/build.mjs from scripts/page.html; do not edit it by hand. -->
+<link rel="canonical" href="{{CANON}}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="HoopsMatic">
+<meta property="og:title" content="{{OGTITLE}}">
+<meta property="og:description" content="{{DESC}}">
+<meta property="og:url" content="{{CANON}}">
+<meta property="og:image" content="https://hoopsmatic.com/tier-lists/og-card">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="NBA Tier Lists by HoopsMatic: rank players in S, A, B, C and D tiers">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://hoopsmatic.com/tier-lists/og-card">
+<meta name="theme-color" content="#f5f5f7">
+<link rel="preload" href="/tier-lists/fonts/dm-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/tier-lists/style.css?v={{V}}">
+</head>
+<body data-page="{{PAGE}}" data-slug="{{SLUG}}">
+<div class="wrap">
+<main id="app">
+{{STATIC}}
+</main>
+<footer class="site-foot">
+  <div>Anything wrong? Email us at <a href="mailto:hoopsmatic@hoopsmatic.com">hoopsmatic@hoopsmatic.com</a></div>
+  <div>For any other inquiry, contact us at <a href="mailto:ads@hoopsmatic.com">ads@hoopsmatic.com</a></div>
+</footer>
+</div>
+<script src="/tier-lists/app.js?v={{V}}" defer></script>
+</body>
+</html>

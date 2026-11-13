@@ -1,0 +1,19 @@
+# Tests on every pull request: the built files are what the build makes, and
+# the templates, pages and app follow the rules (test/*.test.mjs). No network:
+# the build's lookups are cached in data/. Free (public repo); no schedule.
+name: CI
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --test test/*.test.mjs
