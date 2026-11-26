@@ -1,5 +1,5 @@
 {
- "_about": "The homepage's debates (Jorge, Nov 26, 2026): each a question fans really argue about, the board it opens and the player it puts in play (his headshot, and the hero's tier buttons place him on that board). On every page load the hero and the three featured cards are drawn at random from here, no repeats on one page, the hero never the visitor's last one; months = when the debate is in season (weighted up then, inSeasonWeight times; 2 since Nov 26, with three in-season debates left). scripts/build-templates.mjs checks every board and player and copies this to public/hero.json.",
+ "_about": "The homepage's debates (Jorge, Nov 26, 2026): each a question fans really argue about, the board it opens and the player it puts in play (his headshot, and the hero's tier buttons place him on that board). On every page load the hero and the three featured cards are drawn at random from here, no repeats on one page, the hero never the visitor's last one; months = when the debate is in season (weighted up then, inSeasonWeight times; 2 since Nov 26, nine in-season debates since Nov 27). scripts/build-templates.mjs checks every board and player and copies this to public/hero.json.",
  "inSeasonWeight": 2,
  "debates": [
   {
@@ -166,6 +166,96 @@
    "board": "best-centers-of-all-time",
    "player": "nikola-jokic",
    "question": "How close is Jokic to the top five centers ever?"
+  },
+  {
+   "id": "cade-maxey",
+   "board": "2026-27-mvp-race",
+   "player": "cade-cunningham",
+   "question": "Cade or Maxey: which East guard has the better MVP case?",
+   "months": [
+    10,
+    11,
+    12,
+    1,
+    2,
+    3,
+    4
+   ]
+  },
+  {
+   "id": "acuff-boozer",
+   "board": "2026-27-rookie-of-the-year-race",
+   "player": "darius-acuff",
+   "question": "Acuff's scoring or Boozer's all-around game: who's your Rookie of the Year?",
+   "months": [
+    10,
+    11,
+    12,
+    1,
+    2,
+    3,
+    4
+   ]
+  },
+  {
+   "id": "castle-harper",
+   "board": "best-young-players",
+   "player": "stephon-castle",
+   "question": "Who becomes Wemby's real running mate in San Antonio, Castle or Harper?",
+   "months": [
+    10,
+    11,
+    12,
+    1,
+    2,
+    3,
+    4
+   ]
+  },
+  {
+   "id": "class-of-2025",
+   "board": "best-young-players",
+   "player": "vj-edgecombe",
+   "question": "Edgecombe, Fears or Queen: who's the best of the 2025 class right now?",
+   "months": [
+    10,
+    11,
+    12,
+    1,
+    2,
+    3,
+    4
+   ]
+  },
+  {
+   "id": "brown-tatum",
+   "board": "best-players-right-now",
+   "player": "jaylen-brown",
+   "question": "Is it time to rank Jaylen Brown above Jayson Tatum?",
+   "months": [
+    10,
+    11,
+    12,
+    1,
+    2,
+    3,
+    4
+   ]
+  },
+  {
+   "id": "mobley-dpoy",
+   "board": "best-players-right-now",
+   "player": "evan-mobley",
+   "question": "Does a Defensive Player of the Year award make Mobley a top-15 player?",
+   "months": [
+    10,
+    11,
+    12,
+    1,
+    2,
+    3,
+    4
+   ]
   }
  ]
 }
