@@ -1,52 +1,7 @@
 {
- "_about": "The homepage's debates (Jorge, Nov 26, 2026): each a question fans really argue about, the board it opens and the player it puts in play (his headshot, and the hero's tier buttons place him on that board). On every page load the hero and the three featured cards are drawn at random from here, no repeats on one page, the hero never the visitor's last one; months = when the debate is in season (weighted up then). scripts/build-templates.mjs checks every board and player and copies this to public/hero.json.",
- "inSeasonWeight": 3,
+ "_about": "The homepage's debates (Jorge, Nov 26, 2026): each a question fans really argue about, the board it opens and the player it puts in play (his headshot, and the hero's tier buttons place him on that board). On every page load the hero and the three featured cards are drawn at random from here, no repeats on one page, the hero never the visitor's last one; months = when the debate is in season (weighted up then, inSeasonWeight times; 2 since Nov 26, with three in-season debates left). scripts/build-templates.mjs checks every board and player and copies this to public/hero.json.",
+ "inSeasonWeight": 2,
  "debates": [
-  {
-   "id": "brunson-mvp",
-   "board": "2026-27-mvp-race",
-   "player": "jalen-brunson",
-   "question": "Brunson: MVP candidate or just a great season?",
-   "months": [
-    10,
-    11,
-    12,
-    1,
-    2,
-    3,
-    4
-   ]
-  },
-  {
-   "id": "sengun-mvp",
-   "board": "2026-27-mvp-race",
-   "player": "alperen-sengun",
-   "question": "Is Sengun's breakout the start of a real MVP case?",
-   "months": [
-    10,
-    11,
-    12,
-    1,
-    2,
-    3,
-    4
-   ]
-  },
-  {
-   "id": "curry-38",
-   "board": "2026-27-mvp-race",
-   "player": "stephen-curry",
-   "question": "At 38, does Steph still belong in the MVP race?",
-   "months": [
-    10,
-    11,
-    12,
-    1,
-    2,
-    3,
-    4
-   ]
-  },
   {
    "id": "roy-dybantsa",
    "board": "2026-27-rookie-of-the-year-race",
@@ -99,12 +54,6 @@
    "question": "Second-best Laker ever: Kobe or Magic?"
   },
   {
-   "id": "shaq-lakers",
-   "board": "lakers-all-time",
-   "player": "shaquille-o-neal",
-   "question": "Do three titles in eight years make Shaq a Lakers icon?"
-  },
-  {
    "id": "hakeem-shaq",
    "board": "best-centers-of-the-1990s",
    "player": "hakeem-olajuwon",
@@ -145,12 +94,6 @@
    "board": "best-point-guards-of-all-time",
    "player": "chris-paul",
    "question": "Top-five point guard without a ring: does Chris Paul make the cut?"
-  },
-  {
-   "id": "westbrook-curry",
-   "board": "best-point-guards-of-the-2010s",
-   "player": "russell-westbrook",
-   "question": "Did Westbrook's triple-doubles matter more than Curry's titles?"
   },
   {
    "id": "rodman-wallace",
@@ -199,12 +142,6 @@
    "board": "heat-all-time",
    "player": "lebron-james",
    "question": "How high does LeBron go on a Heat list after two titles in four years?"
-  },
-  {
-   "id": "luka-mavs",
-   "board": "mavericks-all-time",
-   "player": "luka-doncic",
-   "question": "Is Luka already the second-greatest Maverick behind Dirk?"
   },
   {
    "id": "isiah-80s",
