@@ -161,6 +161,21 @@ a.tile:hover .ph{box-shadow:0 0 0 2px var(--gold)}
 .share-btns .btn{flex:1 1 140px}
 .share-msg{font-size:12px;color:var(--green);min-height:16px;text-align:center}
 
+/* Make your own list: the search results sit in the page under the box
+   (a list, not a dropdown overlay); the chosen items are tiles. */
+.results{display:flex;flex-direction:column;gap:4px;margin:8px 0 4px}
+.res{display:grid;grid-template-columns:52px 1fr;align-items:center;gap:10px;text-align:left;padding:5px 8px;border-radius:10px;border:1px solid var(--line);background:#0f0f24;color:var(--text);cursor:pointer;font:inherit}
+.res:hover,.res:focus-visible{border-color:var(--gold)}
+.res .who{min-width:0}
+.res .nm{display:block;font-family:var(--display);font-size:16px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.res small{color:var(--dim);font-size:11px}
+.res.typed{grid-template-columns:1fr}
+.chosen{margin-top:10px;padding:6px;border:1px dashed var(--line);min-height:70px}
+.chosen .tile .x{font-size:10px;color:var(--red)}
+.chosen .empty{font-size:12px;color:var(--dim);align-self:center;padding:6px}
+.ph img.logo{object-fit:contain;object-position:center;padding:10%}
+.make-cta{border-color:rgba(255,215,0,.35)}
+
 .report{font-size:12px;color:var(--dim)}
 .report a{color:var(--dim);text-decoration:underline}
 

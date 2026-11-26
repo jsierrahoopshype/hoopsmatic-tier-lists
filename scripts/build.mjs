@@ -2,7 +2,7 @@
 //   public/index.html                     /tier-lists/ (the template list)
 //   public/<slug>/index.html              /tier-lists/<slug>/ (rank; ?l=<id> a published list)
 //   public/<slug>/consensus/index.html    /tier-lists/<slug>/consensus/
-//   public/config.json                    {launch, moment} from rules/launch.json
+//   public/config.json                    {launch, moment, customFrom} from rules/launch.json
 //   data/sitemap-state.json (+ public/)   per-URL content hash and lastmod
 // Each page carries its own title, description, canonical and og: tags (all on
 // hoopsmatic.com) and a plain HTML version of its content (title, line,
@@ -37,6 +37,21 @@ pages['/tier-lists/'] = render({
   STATIC: '<h1>NBA Tier Lists</h1>\n<p class="subtitle">Rank NBA players in S, A, B, C and D tiers, publish your list and see where the fans land.</p>\n<ul class="plain">'
     + D.templates.map((t) => `<li><a href="${SITE}${t.slug}/">${esc(t.title)}</a></li>`).join('') + '</ul>',
 });
+// Stage 2: make your own list, and a custom list's page (?l=, ?c=). Always
+// noindex (hoopsmatic-worker: only the main page and ready consensus pages
+// are indexable) and never in the sitemap.
+pages['/tier-lists/make/'] = render({
+  TITLE: 'Make your own NBA tier list | HoopsMatic',
+  DESC: 'Make your own tier list: a title, 3 to 100 NBA players, teams or anything you type, ranked S to D. Publish it and share it.',
+  CANON: SITE + 'make/', OGTITLE: 'Make your own NBA tier list', PAGE: 'make', SLUG: '',
+  STATIC: '<h1>Make your own tier list</h1>\n<p class="subtitle">Give it a title, add 3 to 100 items, then rank them S to D.</p>',
+});
+pages['/tier-lists/list/'] = render({
+  TITLE: 'A fan’s NBA tier list | HoopsMatic',
+  DESC: 'A tier list made by a fan on HoopsMatic: see it, rank the same items yourself and see where the fans land.',
+  CANON: SITE + 'list/', OGTITLE: 'A fan’s NBA tier list', PAGE: 'custom', SLUG: '',
+  STATIC: '<h1>Tier list</h1>\n<p class="subtitle">Loading the list...</p>',
+});
 for (const t of D.templates) {
   pages[`/tier-lists/${t.slug}/`] = render({
     TITLE: esc(`${t.title} tier list: rank the players | HoopsMatic`),
@@ -53,7 +68,7 @@ for (const t of D.templates) {
 }
 
 // Remove page folders of templates that no longer exist (never fonts/).
-const keep = new Set(D.templates.map((t) => t.slug).concat(['fonts']));
+const keep = new Set(D.templates.map((t) => t.slug).concat(['fonts', 'make', 'list']));
 for (const f of readdirSync(ROOT + 'public')) if (statSync(ROOT + 'public/' + f).isDirectory() && !keep.has(f)) rmSync(ROOT + 'public/' + f, { recursive: true });
 const prevHtml = {};
 for (const path of Object.keys(pages)) { const f = ROOT + 'public/' + path.replace(/^\/tier-lists\//, '') + 'index.html'; if (existsSync(f)) prevHtml[path] = readFileSync(f, 'utf8'); }
@@ -62,7 +77,7 @@ for (const [path, html] of Object.entries(pages)) {
   mkdirSync(dir, { recursive: true });
   writeFileSync(dir + 'index.html', html);
 }
-writeFileSync(ROOT + 'public/config.json', JSON.stringify({ launch: L.launch || null, moment: L.moment || null }) + '\n');
+writeFileSync(ROOT + 'public/config.json', JSON.stringify({ launch: L.launch || null, moment: L.moment || null, customFrom: L.customFrom || null }) + '\n');
 
 // Sitemap state: a URL's lastmod moves only when its page's content changes.
 // Content: the title, description, canonical and the page's own text (the

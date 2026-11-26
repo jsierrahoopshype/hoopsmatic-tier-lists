@@ -2,7 +2,11 @@
 //   /tier-lists/                       the template list
 //   /tier-lists/<slug>/                rank the template's players (S to D)
 //   /tier-lists/<slug>/?l=<id>         one published list, with the share block
-//   /tier-lists/<slug>/consensus/      the fans' consensus (25+ lists)
+//   /tier-lists/<slug>/consensus/      the fans' consensus (10+ lists)
+//   /tier-lists/make/                  make your own list (Stage 2)
+//   /tier-lists/list/?l=<id>           one published custom list (or a ranking of one)
+//   /tier-lists/list/?c=<id>           rank that custom list yourself
+//   /tier-lists/list/?c=<id>&view=consensus   its consensus (10+ rankings)
 // The API is the tier-lists server (hoopsmatic-worker/tier-lists-server),
 // /tier-lists/api/*. Templates come from templates.json (scripts/build-templates.mjs).
 (() => {
@@ -50,6 +54,24 @@
   // ---------- data ----------
   let DATA = null;
   const P = (row) => ({ id: row[0], name: row[1], nba: row[2], link: row[3], team: row[4] });
+  // A custom list's item (server: {id, k: p|t|x, name, nba, logo, link}).
+  const PC = (x) => ({ id: x.id, name: x.name, nba: x.nba || 0, link: x.link || '', team: x.k === 't' ? 'Team' : '', logo: x.k === 't' ? x.logo : '', text: x.k === 'x' });
+  // Stage 2 (custom lists) is open before launch (testing) and from its own moment.
+  let CONF = null;
+  async function loadConfig() {
+    if (CONF) return CONF;
+    try { CONF = await (await fetch(BASE + 'config.json', { cache: 'no-cache' })).json(); } catch (e) { CONF = {}; }
+    return CONF;
+  }
+  const customOpen = (c) => { const now = Date.now(), L = Date.parse(c && c.moment || ''), F = Date.parse(c && c.customFrom || ''); return (isFinite(L) && now < L) || (isFinite(F) && now >= F); };
+  const LOGO = '/img/nba-headshots/teams/logos/current/svg/';
+  // A report goes to us by email, with the list's link.
+  function reportLink(url) {
+    const p = el('p', 'report');
+    const a = el('a', null, 'Report this list'); a.href = 'mailto:hoopsmatic@hoopsmatic.com?subject=' + encodeURIComponent('Report a tier list') + '&body=' + encodeURIComponent('This list should be looked at: ' + url);
+    p.append('Something wrong or offensive here? ', a);
+    return p;
+  }
   async function loadTemplates() {
     if (DATA) return DATA;
     const r = await fetch(BASE + 'templates.json', { cache: 'no-cache' });
@@ -61,7 +83,8 @@
   // ---------- names and the headshot frame ----------
   const SUFFIX = /^(Jr\.?|Sr\.?|II|III|IV)$/;
   function splitName(full) {
-    const parts = String(full).split(' ');
+    // The data tells namesakes apart with a year ("Larry Johnson (1969)"); it is never shown.
+    const parts = String(full).replace(/\s*\(\d{4}\)$/, '').split(' ');
     let i = parts.length - 1;
     if (i > 0 && SUFFIX.test(parts[i])) i--;
     return [parts.slice(0, i).join(' '), parts.slice(i).join(' ')];
@@ -71,6 +94,12 @@
   // photo (or one that fails to load) the name sits inside instead.
   function frame(p) {
     const box = el('span', 'ph');
+    if (p.text) { box.classList.add('nophoto', 'text'); box.appendChild(el('span', 'ln', p.name)); return box; }
+    if (p.logo) {
+      const img = el('img'); img.alt = ''; img.decoding = 'async'; img.loading = 'lazy'; img.className = 'logo';
+      img.src = LOGO + p.logo + '.svg'; img.onerror = () => { box.textContent = ''; box.classList.add('nophoto'); box.appendChild(el('span', 'ln', p.name)); };
+      box.appendChild(img); return box;
+    }
     const noPhoto = () => {
       box.textContent = ''; box.classList.add('nophoto');
       const [f, l] = splitName(p.name);
@@ -87,22 +116,25 @@
   }
   // A tile: a button while ranking, a link to the player's HoopsMatic page elsewhere.
   function tile(p, opts = {}) {
-    const t = el(opts.link ? 'a' : 'button', 'tile');
-    if (opts.link) { t.href = p.link; t.title = p.name + (p.team ? ', ' + p.team : ''); }
+    const t = el(opts.link ? (p.link ? 'a' : 'span') : 'button', 'tile');
+    if (opts.link) { if (p.link) t.href = p.link; t.title = p.name + (p.team ? ', ' + p.team : ''); }
     else { t.type = 'button'; t.dataset.id = p.id; t.setAttribute('aria-label', p.name + (p.team ? ', ' + p.team : '')); }
     t.appendChild(frame(p));
-    t.appendChild(el('span', 'nm', lastName(p.name)));
+    t.appendChild(el('span', 'nm', p.text ? p.name : p.logo ? p.name.split(' ').slice(-1)[0] : lastName(p.name)));
     if (opts.avg != null) t.appendChild(el('span', 'avg', opts.avg.toFixed(2)));
     return t;
   }
   function tabs(active, s) {
     const nav = el('nav', 'tabs'); nav.setAttribute('aria-label', 'Tier list views');
     const add = (key, text, href) => { const a = el('a', key === active ? 'on' : '', text); a.href = href; nav.appendChild(a); };
-    add('rank', 'Your list', BASE + s + '/');
-    add('consensus', "Fans' consensus", BASE + s + '/consensus/');
+    const c = /^c:/.test(s) ? s.slice(2) : null;
+    add('rank', c ? 'Rank it yourself' : 'Your list', c ? BASE + 'list/?c=' + c : BASE + s + '/');
+    add('consensus', "Fans' consensus", c ? BASE + 'list/?c=' + c + '&view=consensus' : BASE + s + '/consensus/');
     add('all', 'All tier lists', BASE);
     return nav;
   }
+  // Where a list lives: a template's page, or the custom list page.
+  const listHref = (slug, id) => (/^c:/.test(slug) ? BASE + 'list/?l=' : BASE + slug + '/?l=') + encodeURIComponent(id);
   function board(cls) {
     const b = el('div', 'board' + (cls ? ' ' + cls : ''));
     const zones = {};
@@ -122,6 +154,14 @@
     app.textContent = '';
     app.appendChild(el('h1', null, 'NBA Tier Lists'));
     app.appendChild(el('p', 'subtitle', 'Rank NBA players in S, A, B, C and D tiers, publish your list and see where the fans land.'));
+    if (customOpen(await loadConfig())) {
+      const c = el('div', 'msg make-cta');
+      c.appendChild(el('b', null, 'Make your own tier list'));
+      c.append('Pick your own title and 3 to 100 items: NBA players, teams or anything you type. Then rank them and share it.');
+      c.appendChild(el('br'));
+      const a = el('a', 'btn', 'Start a list'); a.href = BASE + 'make/'; c.appendChild(a);
+      app.appendChild(c);
+    }
     let counts = {};
     try { counts = (await api('counts')).counts || {}; } catch (e) { /* counts are a nicety */ }
     const groups = [];
@@ -151,8 +191,11 @@
   }
 
   // ================= ranking =================
+  // T: a template ({slug, title, blurb, players: rows}) or a custom list
+  // ({slug: 'c:<id>', title, blurb, items: [P]}); T.make: a brand-new list
+  // (its items go to the server with the ranking, POST custom).
   function rank(T) {
-    const players = T.players.map(P);
+    const players = T.items || T.players.map(P);
     const byId = new Map(players.map((p) => [p.id, p]));
     const KEY = 'tl-rank-' + T.slug;
     const saved = store.get(KEY) || {};
@@ -161,9 +204,9 @@
     let sel = null;
 
     app.textContent = '';
-    app.appendChild(tabs('rank', T.slug));
+    if (!T.make) app.appendChild(tabs('rank', T.slug));
     app.appendChild(el('h1', null, T.title));
-    const sub = el('p', 'subtitle', T.blurb + ' ');
+    const sub = el('p', 'subtitle', (T.blurb ? T.blurb + ' ' : ''));
     sub.appendChild(el('span', null, matchMedia('(pointer: coarse)').matches ? 'Tap a player, then tap a tier.' : 'Drag players into tiers, or click a player and then a tier.'));
     app.appendChild(sub);
     const { b, zones } = board('edit'); app.appendChild(b);
@@ -183,7 +226,7 @@
     const note = el('p', 'note'); note.setAttribute('aria-live', 'polite'); app.appendChild(note);
     const tools = el('div', 'tools');
     const reset = el('button', 'linkbtn', 'Start over'); reset.type = 'button';
-    const cons = el('a', null, "See the fans' consensus"); cons.href = BASE + T.slug + '/consensus/'; cons.style.fontSize = '.8rem';
+    const cons = el('a', null, T.make ? 'Change the items' : "See the fans' consensus"); cons.href = T.make ? BASE + 'make/' : /^c:/.test(T.slug) ? BASE + 'list/?c=' + T.slug.slice(2) + '&view=consensus' : BASE + T.slug + '/consensus/'; cons.style.fontSize = '.8rem';
     tools.append(reset, cons); app.appendChild(tools);
 
     const save = () => store.set(KEY, { place });
@@ -206,7 +249,7 @@
       if (p) {
         selbar.appendChild(frame(p));
         const w = el('div', 'who');
-        const a = el('a', null, p.name); a.href = p.link; w.appendChild(a);
+        const a = el(p.link ? 'a' : 'b', null, splitName(p.name).filter(Boolean).join(' ')); if (p.link) a.href = p.link; w.appendChild(a);
         w.appendChild(el('small', null, p.team));
         selbar.appendChild(w);
         const act = el('div', 'act');
@@ -270,16 +313,19 @@
       const tiers = Object.fromEntries(TIERS.map((t) => [t, players.filter((p) => place[p.id] === t).map((p) => p.id)]));
       pub.disabled = true; note.classList.remove('err'); note.textContent = 'Publishing...';
       try {
-        const r = await api('publish', { device: device(), slug: T.slug, name: name.value.trim() || null, tiers });
+        const r = T.make ? await api('custom', { device: device(), title: T.title, name: name.value.trim() || null, items: T.make, tiers })
+          : await api('publish', { device: device(), slug: T.slug, name: name.value.trim() || null, tiers });
+        if (T.make) store.set('tl-make', null);
         store.set('tl-name', name.value.trim());
         // Lists published from this browser: their page says "your list".
         store.set('tl-mine', [...(store.get('tl-mine') || []), r.id].slice(-50));
         // From launch the server seals a badge receipt; the list's own page
         // hands it to the badges (HMGames.badgeResult) once, then forgets it.
         if (typeof r.badge === 'string') store.set('tl-badge', { id: r.id, receipt: r.badge });
-        location.href = BASE + T.slug + '/?l=' + encodeURIComponent(r.id);
+        location.href = listHref(T.make ? 'c:' : T.slug, r.id);
       } catch (x) {
-        const m = { bad_name: "That name can't be used. Try another, or leave it blank.", too_many: 'Too many lists from here today. Try again tomorrow.', bad_tiers: 'Something is off with this list. Reload the page and try again.' };
+        const m = { bad_name: "That name can't be used. Try another, or leave it blank.", too_many: 'Too many lists from here today. Try again tomorrow.', bad_tiers: 'Something is off with this list. Reload the page and try again.',
+          bad_title_word: "That title can't be used. Change it and try again.", bad_item_word: "One of the typed items can't be used. Change it and try again.", bad_items: 'Something is off with the items. Go back and check them.', not_yet: 'Making your own list is not open yet.' };
         note.classList.add('err'); note.textContent = m[x.message] || "Couldn't publish right now. Try again in a minute.";
         pub.disabled = false;
       }
@@ -288,18 +334,18 @@
   }
 
   // ================= one published list =================
-  async function listView(T, id) {
+  async function listView(T, id, L0) {
     app.textContent = '';
-    app.appendChild(tabs('', T.slug));
-    let L;
-    try { L = await api('list/' + encodeURIComponent(id)); } catch (e) {
+    if (T.slug) app.appendChild(tabs('', T.slug));
+    let L = L0;
+    try { if (!L) L = await api('list/' + encodeURIComponent(id)); } catch (e) {
       app.appendChild(el('h1', null, T.title));
       const m = el('div', 'msg'); m.appendChild(el('b', null, e.status === 404 ? 'This list is not available.' : "This list couldn't load."));
       m.append(e.status === 404 ? 'It may have been removed.' : 'Refresh to try again.');
-      const a = el('a', 'btn', 'Make your own list'); a.href = BASE + T.slug + '/'; m.appendChild(el('br')); m.appendChild(a);
+      const a = el('a', 'btn', 'Make your own list'); a.href = T.slug ? BASE + T.slug + '/' : BASE; m.appendChild(el('br')); m.appendChild(a);
       app.appendChild(m); return;
     }
-    const byId = new Map(T.players.map((r) => [r[0], P(r)]));
+    const byId = new Map((T.items || T.players.map(P)).map((p) => [p.id, p]));
     app.appendChild(el('h1', null, T.title));
     const sub = el('p', 'subtitle');
     sub.appendChild(el('b', null, L.name ? `${L.name}'s list` : "A fan's list"));
@@ -316,11 +362,14 @@
     const own = mine.includes(L.id);
     const sec = el('section', 'section');
     const sh = el('div', 'section-head'); sh.appendChild(el('h2', null, own ? 'Share your list' : 'Share this list')); sec.appendChild(sh);
-    sec.appendChild(shareBlock(T.title, L, SITE + T.slug + '/?l=' + L.id)); app.appendChild(sec);
+    const url = 'https://hoopsmatic.com' + listHref(T.slug, L.id);
+    sec.appendChild(shareBlock(T.title, L, url)); app.appendChild(sec);
     const tools = el('div', 'tools');
-    const a1 = el('a', 'btn', own ? 'Edit and republish' : 'Make your own list'); a1.href = BASE + T.slug + '/';
-    const a2 = el('a', null, "See the fans' consensus"); a2.href = BASE + T.slug + '/consensus/'; a2.style.fontSize = '.85rem';
+    const custom = /^c:/.test(T.slug) ? T.slug.slice(2) : null;
+    const a1 = el('a', 'btn', custom ? 'Rank this list yourself' : own ? 'Edit and republish' : 'Make your own list'); a1.href = custom ? BASE + 'list/?c=' + custom : BASE + T.slug + '/';
+    const a2 = el('a', null, "See the fans' consensus"); a2.href = custom ? BASE + 'list/?c=' + custom + '&view=consensus' : BASE + T.slug + '/consensus/'; a2.style.fontSize = '.85rem';
     tools.append(a1, a2); app.appendChild(tools);
+    app.appendChild(reportLink(url));
     badges(L.id, own);
   }
 
@@ -417,10 +466,132 @@
     return box;
   }
 
+  // ================= make your own list (Stage 2) =================
+  // A title (up to 80 characters), then 3 to 100 items: players and teams
+  // picked from our database (public/players.json) or typed text (up to 40
+  // characters, a text tile). Then the same ranking screen; publishing sends
+  // the items with the ranking. The draft is kept in this browser.
+  const TITLE_MAX = 80, TEXT_MAX = 40, MIN_ITEMS = 3, MAX_ITEMS = 100;
+  async function make() {
+    app.textContent = '';
+    if (!customOpen(await loadConfig())) {
+      app.appendChild(el('h1', null, 'Make your own tier list'));
+      const m = el('div', 'msg'); m.appendChild(el('b', null, 'Coming soon')); m.append('Making your own list opens soon. Meanwhile, rank one of ours.');
+      m.appendChild(el('br')); const a = el('a', 'btn', 'All tier lists'); a.href = BASE; m.appendChild(a); app.appendChild(m); return;
+    }
+    const draft = store.get('tl-make') || {};
+    let title = typeof draft.title === 'string' ? draft.title.slice(0, TITLE_MAX) : '';
+    let items = Array.isArray(draft.items) ? draft.items.filter((x) => x && (x.p || x.t || x.x)).slice(0, MAX_ITEMS) : [];
+    const save = () => store.set('tl-make', { title, items });
+    const nav = el('nav', 'tabs'); const back = el('a', null, 'All tier lists'); back.href = BASE; nav.appendChild(back); app.appendChild(nav);
+    app.appendChild(el('h1', null, 'Make your own tier list'));
+    app.appendChild(el('p', 'subtitle', 'Give it a title, add 3 to 100 items (NBA players, teams or anything you type), then rank them S to D.'));
+    // Title
+    const s1 = el('section', 'section');
+    const h1 = el('div', 'section-head'); h1.appendChild(el('h2', null, 'Title')); const tc = el('span', 'count'); h1.appendChild(tc); s1.appendChild(h1);
+    const ti = el('input', 'field'); ti.maxLength = TITLE_MAX; ti.placeholder = 'Best dunkers of the 2000s'; ti.value = title; ti.setAttribute('aria-label', 'List title');
+    s1.appendChild(ti); app.appendChild(s1);
+    // Items
+    const s2 = el('section', 'section');
+    const h2 = el('div', 'section-head'); h2.appendChild(el('h2', null, 'Items')); const ic = el('span', 'count'); h2.appendChild(ic); s2.appendChild(h2);
+    const q = el('input', 'field'); q.placeholder = 'Search a player or team, or type anything'; q.maxLength = TEXT_MAX; q.setAttribute('aria-label', 'Add an item'); q.autocomplete = 'off';
+    s2.appendChild(q);
+    const results = el('div', 'results'); results.setAttribute('aria-live', 'polite'); s2.appendChild(results);
+    const chosen = el('div', 'pool chosen'); s2.appendChild(chosen);
+    app.appendChild(s2);
+    const go = el('button', 'btn', 'Rank them'); go.type = 'button';
+    const note = el('p', 'note'); note.setAttribute('aria-live', 'polite');
+    const tools = el('div', 'tools'); const clear = el('button', 'linkbtn', 'Start over'); clear.type = 'button'; tools.append(go, clear);
+    app.appendChild(tools); app.appendChild(note);
+
+    let DB = null;
+    try { DB = await (await fetch(BASE + 'players.json', { cache: 'force-cache' })).json(); } catch (e) { DB = { players: [], teams: [] }; }
+    const pById = new Map(DB.players.map((r) => [r[0], r])), tById = new Map(DB.teams.map((r) => [r[0], r]));
+    const fold = (s) => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9 ]/g, '');
+    const idx = DB.players.map((r) => [fold(r[1]), r]);
+    const asP = (x) => x.p ? { id: 'p:' + x.p, name: (pById.get(x.p) || [])[1] || x.p, nba: (pById.get(x.p) || [])[2] || 0, link: (pById.get(x.p) || [])[3] || '', team: (pById.get(x.p) || [])[4] || '' }
+      : x.t ? { id: 't:' + x.t, name: (tById.get(x.t) || [])[1] || x.t, logo: x.t, link: (tById.get(x.t) || [])[2] || '', team: 'Team' }
+      : { id: 'x:' + x.x.toLowerCase(), name: x.x, text: true };
+    const has = (key) => items.some((x) => asP(x).id === key);
+    function add(x) {
+      if (items.length >= MAX_ITEMS) { note.textContent = `That's ${MAX_ITEMS} items, the most a list can have.`; return; }
+      if (has(asP(x).id)) { note.textContent = 'Already on the list.'; return; }
+      items.push(x); save(); q.value = ''; search(); draw(); q.focus();
+    }
+    function search() {
+      results.textContent = '';
+      const v = q.value.trim(), f = fold(v);
+      if (!v) return;
+      const teams = f.length >= 2 ? DB.teams.filter((r) => fold(r[1]).includes(f) || r[0] === f).slice(0, 3) : [];
+      const ps = f.length >= 2 ? idx.filter(([n]) => n.includes(f)).sort((a, b) => (a[0].startsWith(f) ? 0 : 1) - (b[0].startsWith(f) ? 0 : 1) || (b[1][2] ? 1 : 0) - (a[1][2] ? 1 : 0)).slice(0, 8).map((x) => x[1]) : [];
+      for (const r of teams) results.appendChild(resultRow({ t: r[0] }, r[1], 'Team'));
+      for (const r of ps) results.appendChild(resultRow({ p: r[0] }, r[1], r[4]));
+      const typed = el('button', 'res typed'); typed.type = 'button';
+      typed.appendChild(el('span', 'nm', `Add "${v}" as text`)); typed.appendChild(el('small', null, 'A text tile, no picture'));
+      typed.addEventListener('click', () => add({ x: v.replace(/\s+/g, ' ').slice(0, TEXT_MAX) }));
+      results.appendChild(typed);
+    }
+    function resultRow(x, name, meta) {
+      const b = el('button', 'res'); b.type = 'button';
+      b.appendChild(frame(asP(x)));
+      const w = el('span', 'who'); w.appendChild(el('span', 'nm', name)); w.appendChild(el('small', null, meta || '')); b.appendChild(w);
+      b.addEventListener('click', () => add(x));
+      return b;
+    }
+    function draw() {
+      tc.textContent = `${ti.value.length} / ${TITLE_MAX}`;
+      ic.textContent = `${items.length} of ${MAX_ITEMS} (at least ${MIN_ITEMS})`;
+      chosen.textContent = '';
+      if (!items.length) chosen.appendChild(el('span', 'empty', 'No items yet.'));
+      items.forEach((x, i) => {
+        const p = asP(x);
+        const tl = el('button', 'tile'); tl.type = 'button'; tl.title = 'Remove ' + p.name; tl.setAttribute('aria-label', 'Remove ' + p.name);
+        tl.appendChild(frame(p)); tl.appendChild(el('span', 'nm', p.text ? p.name : p.logo ? p.name.split(' ').slice(-1)[0] : lastName(p.name)));
+        tl.appendChild(el('span', 'x', 'Remove'));
+        tl.addEventListener('click', () => { items.splice(i, 1); save(); draw(); });
+        chosen.appendChild(tl);
+      });
+      go.disabled = !(ti.value.trim() && items.length >= MIN_ITEMS);
+      if (!note.classList.contains('err')) note.textContent = go.disabled ? (ti.value.trim() ? `Add at least ${MIN_ITEMS} items.` : 'Give your list a title.') : 'Tap an item to take it off. Ready to rank?';
+    }
+    ti.addEventListener('input', () => { title = ti.value; save(); note.classList.remove('err'); draw(); });
+    q.addEventListener('input', search);
+    q.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); const first = results.querySelector('.res'); if (first) first.click(); } });
+    clear.addEventListener('click', () => { items = []; title = ''; ti.value = ''; save(); draw(); });
+    go.addEventListener('click', () => {
+      const T = { slug: 'c:new', title: ti.value.trim().slice(0, TITLE_MAX), blurb: '', items: items.map((x, i) => ({ ...asP(x), id: 'i' + i })), make: items.map((x) => (x.p ? { p: x.p } : x.t ? { t: x.t } : { x: x.x })) };
+      store.set('tl-rank-c:new', null);
+      rank(T); window.scrollTo(0, 0);
+    });
+    draw();
+  }
+
+  // ================= a custom list: its page, ranking it, its consensus =================
+  async function customPage() {
+    const qs = new URLSearchParams(location.search);
+    const l = qs.get('l'), c = qs.get('c');
+    const fail = (msg) => { app.textContent = ''; app.appendChild(el('h1', null, 'Tier list')); const m = el('div', 'msg'); m.appendChild(el('b', null, msg)); m.append('It may have been removed.'); m.appendChild(el('br')); const a = el('a', 'btn', 'All tier lists'); a.href = BASE; m.appendChild(a); app.appendChild(m); };
+    let L = null, cid = c && /^[A-Za-z0-9]{8}$/.test(c) ? c : null;
+    if (l && /^[A-Za-z0-9]{8}$/.test(l)) {
+      try { L = await api('list/' + l); } catch (e) { return fail(e.status === 404 ? 'This list is not available.' : "This list couldn't load."); }
+      const m = /^c:([A-Za-z0-9]{8})$/.exec(L.slug || '');
+      if (!m) { location.replace(BASE + L.slug + '/?l=' + l); return; }
+      cid = m[1];
+    }
+    if (!cid) return fail('This list is not available.');
+    let C;
+    try { C = await api('custom/' + cid); } catch (e) { return fail(e.status === 404 ? 'This list is not available.' : "This list couldn't load."); }
+    const T = { slug: 'c:' + cid, title: C.title, blurb: '', items: C.items.map(PC) };
+    if (L) return listView(T, L.id, L);
+    if (qs.get('view') === 'consensus') return consensus(T);
+    return rank(T);
+  }
+
   // ================= the fans' consensus =================
   async function consensus(T) {
     app.textContent = '';
     app.appendChild(tabs('consensus', T.slug));
+    const custom = /^c:/.test(T.slug) ? T.slug.slice(2) : null;
     app.appendChild(el('h1', null, `${T.title}: the fans' consensus`));
     const sub = el('p', 'subtitle'); app.appendChild(sub);
     let C;
@@ -432,15 +603,15 @@
       sub.textContent = T.blurb;
       const m = el('div', 'msg');
       m.appendChild(el('b', null, 'Not enough lists yet'));
-      m.append(`${C.lists} of ${C.need || NEED} lists so far. The fans' consensus appears once ${C.need || NEED} people have published theirs.`);
+      m.append(`${C.lists} of ${C.need || NEED} lists so far. The fans' consensus appears once ${C.need || NEED} people have ${custom ? 'ranked this list' : 'published theirs'}.`);
       m.appendChild(el('br'));
-      const a = el('a', 'btn', 'Make your list'); a.href = BASE + T.slug + '/'; m.appendChild(a);
+      const a = el('a', 'btn', custom ? 'Rank this list yourself' : 'Make your list'); a.href = custom ? BASE + 'list/?c=' + custom : BASE + T.slug + '/'; m.appendChild(a);
       app.appendChild(m); return;
     }
-    sub.textContent = `The average of ${C.lists.toLocaleString('en-US')} published lists: S = 5 points, A = 4, B = 3, C = 2, D = 1. ${T.blurb}`;
+    sub.textContent = `The average of ${C.lists.toLocaleString('en-US')} published lists: S = 5 points, A = 4, B = 3, C = 2, D = 1. ${T.blurb || ''}`;
     // The written intro (built by the server from the votes; the page's HTML carries it too).
     if (C.intro) app.insertBefore(el('p', 'intro', C.intro), sub);
-    const byId = new Map(T.players.map((r) => [r[0], P(r)]));
+    const byId = new Map((T.items || T.players.map(P)).map((p) => [p.id, p]));
     const { b, zones } = board();
     for (const t of TIERS) {
       const ps = C.players.filter((x) => x.tier === t && byId.has(x.id));
@@ -457,13 +628,13 @@
       r.appendChild(el('span', 'rk', String(i + 1)));
       r.appendChild(frame(p));
       const nm = el('span', 'nm'); const chip = el('span', 'chip', x.tier); chip.style.background = TIER_HEX[x.tier]; nm.appendChild(chip);
-      const a = el('a', null, p.name); a.href = p.link; nm.appendChild(a); nm.appendChild(el('small', null, p.team)); r.appendChild(nm);
+      const a = el(p.link ? 'a' : 'span', p.link ? null : 'tx', splitName(p.name).filter(Boolean).join(' ')); if (p.link) a.href = p.link; nm.appendChild(a); if (p.team) nm.appendChild(el('small', null, p.team)); r.appendChild(nm);
       const v = el('span', 'v', x.avg.toFixed(2)); v.appendChild(el('small', null, Math.round(x.s * 100) + '% S')); r.appendChild(v);
       rows.appendChild(r);
     });
     sec.appendChild(rows); app.appendChild(sec);
     const tools = el('div', 'tools');
-    const a1 = el('a', 'btn', 'Make your list'); a1.href = BASE + T.slug + '/';
+    const a1 = el('a', 'btn', custom ? 'Rank this list yourself' : 'Make your list'); a1.href = custom ? BASE + 'list/?c=' + custom : BASE + T.slug + '/';
     tools.appendChild(a1); app.appendChild(tools);
   }
 
@@ -471,6 +642,8 @@
   (async () => {
     try {
       if (page === 'home') return await home();
+      if (page === 'make') return await make();
+      if (page === 'custom') return await customPage();
       await loadTemplates();
       const T = templateOf(slug);
       if (!T) return;

@@ -1,5 +1,7 @@
 {
  "_about": "NBA Tier Lists' public launch (Jorge, Nov 26, 2026): Sunday, November 30, 2026, 15:00 Madrid = 9:00 AM ET. Everything switches on by itself at that moment, from the clock, with nothing flipped by hand: hoopsmatic-worker TIER_LISTS_LAUNCH (indexing of the main page and consensus pages with 25+ lists, the sitemap and its robots.txt line, the menu row, the games roster), tier-lists-server LAUNCH (the consensus from zero, badge receipts) and the privacy paragraph in hoopsmatic-accounts. scripts/build.mjs copies it to public/config.json.",
  "launch": "2026-11-30",
- "moment": "2026-11-30T14:00:00Z"
+ "moment": "2026-11-30T14:00:00Z",
+ "_customFrom": "Stage 2 (make your own list) goes public at this moment: the launch if it passes every check by Sat Nov 29, 22:00 Madrid, otherwise a later moment. Before the launch it is open for testing. tier-lists-server CUSTOM_FROM holds the same moment.",
+ "customFrom": "2026-11-30T14:00:00Z"
 }
