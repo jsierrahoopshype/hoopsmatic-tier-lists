@@ -183,3 +183,19 @@ test('pool order, sizes, tiers and tile names', () => {
   const L = tileLabels([{ name: 'Paul George' }, { name: 'Kenyon George' }, { name: 'Gary Payton' }, { name: 'Gary Payton II' }]).map((p) => p.label);
   assert.deepEqual(L, ['P. George', 'K. George', 'Gary Payton', 'Gary Payton II']);
 });
+
+test('pinned hand additions, the three-point and MVP orders', () => {
+  const order = (slug) => D.templates.find((t) => t.slug === slug).players.slice().sort((a, b) => a[5] - b[5]);
+  // Every approved hand addition sits inside the Top 25 of its pool.
+  for (const [slug, ed] of Object.entries(E)) for (const id of Object.keys(ed.add || {})) {
+    const r = D.templates.find((t) => t.slug === slug).players.find((p) => p[0] === id);
+    assert.ok(r[5] <= 25, `${slug}: ${r[1]} at ${r[5]}`);
+  }
+  // Makes and accuracy together: the great shooters are all in the Top 25.
+  const top3 = order('best-three-point-shooters-of-all-time').slice(0, 25).map((r) => r[1]);
+  for (const n of ['Stephen Curry', 'Ray Allen', 'Reggie Miller', 'Kyle Korver', 'Steve Kerr', 'Predrag Stojakovic', 'Klay Thompson']) assert.ok(top3.includes(n), n);
+  // MVP race: the team's record counts (the build multiplies by 0.5 + win %, from the pinned standings).
+  const src = read('scripts/build-templates.mjs');
+  assert.ok(src.includes("* (0.5 + winPct(teamNow(p)))"), 'MVP race x (0.5 + team win %)');
+  assert.ok(JSON.parse(read('data/sources.lock.json')).sources.some((s) => s.id === 'standings'), 'standings pinned');
+});

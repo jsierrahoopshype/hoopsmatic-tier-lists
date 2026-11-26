@@ -1,0 +1,12 @@
+{
+ "_about": "Where each approved hand addition (rules/edits.json) sits in its pool's order when the template's own score would put it below 25 (Jorge, Nov 26, 2026: always inside the Top 25, where a fan would expect him). 1 = best. One the score already puts in the Top 25 keeps that place; an addition with no place here goes to the lowest free slot from 25. Also the place for a player the data undersells (ABA years). scripts/build-templates.mjs.",
+ "templates": {
+  "best-point-guards-of-the-2010s": { "derrick-rose": 9, "kemba-walker": 12, "isaiah-thomas": 16, "ben-simmons": 20 },
+  "best-point-guards-of-all-time": { "chauncey-billups": 14, "kevin-johnson": 16 },
+  "best-three-point-shooters-of-all-time": { "steve-kerr": 8, "dale-ellis": 18, "glen-rice": 20, "dell-curry": 23, "duncan-robinson": 24 },
+  "best-defenders-of-all-time": { "bill-russell": 3, "bruce-bowen": 12, "tony-allen": 18 },
+  "best-centers-of-the-1990s": { "arvydas-sabonis": 16, "bill-cartwright": 20, "rony-seikaly": 22 },
+  "best-centers-of-all-time": { "george-mikan": 6, "artis-gilmore": 15, "yao-ming": 18 },
+  "best-international-players-of-all-time": { "arvydas-sabonis": 12, "predrag-stojakovic": 13, "drazen-petrovic": 14, "toni-kukoc": 15 }
+ }
+}
