@@ -73,7 +73,8 @@ h1{font-family:var(--display);font-size:30px;font-weight:700;line-height:1.08;le
   color:var(--text);user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;cursor:pointer;background:none;border:0;font:inherit;text-align:center}
 a.tile:hover{text-decoration:none}
 a.tile:hover .ph{box-shadow:0 0 0 2px var(--gold)}
-.tile .nm{font-family:var(--display);font-size:11px;font-weight:500;letter-spacing:.2px;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+/* Names never cut short: a long one wraps to a second line (at a hyphen if it has one). */
+.tile .nm{font-family:var(--display);font-size:11px;font-weight:500;letter-spacing:.1px;line-height:1.1;white-space:normal;overflow-wrap:anywhere;hyphens:manual;color:var(--ink)}
 .tile .ph.nophoto + .nm{display:none}
 .tile .ph.nophoto{aspect-ratio:auto;height:calc((60px - 4px) * 190 / 260 + 15px)}
 .tile .avg{font-size:10px;color:var(--gold);font-weight:600}
@@ -106,16 +107,23 @@ a.tile:hover .ph{box-shadow:0 0 0 2px var(--gold)}
 .btn.small{font-size:14px;padding:8px 14px}
 .pool-size{margin-bottom:4px;flex-wrap:wrap}
 
-/* Selected player (ranking): sticks to the bottom of the screen while the
-   reader scrolls up to a tier (part of the page, not an overlay). */
-.selbar{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--gold);
-  border-radius:12px;padding:7px 11px;margin-top:10px;font-size:13px;position:sticky;bottom:8px;z-index:5;box-shadow:0 10px 30px rgba(0,0,0,.45)}
-.selbar .ph{width:52px;flex:0 0 auto}
-.selbar .who{min-width:0;flex:1;line-height:1.3}
-.selbar .who a{font-family:var(--display);font-size:16px;font-weight:600;display:block;color:var(--text)}
-.selbar .who small{color:var(--dim);font-size:11px}
-.selbar .act{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
-.selbar .hint{font-size:12px;color:var(--gold);font-weight:600;white-space:nowrap}
+/* The placement bar: last in the page, stuck to the bottom of the screen
+   while a player is picked (part of the page, not an overlay): his photo and
+   name, then one button per tier, so placing never needs a scroll up. */
+.selbar{position:sticky;bottom:0;z-index:5;margin:12px -14px 0;padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+  background:var(--panel2);border-top:2px solid var(--gold);box-shadow:0 -10px 30px rgba(0,0,0,.5)}
+.sel-who{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.sel-who .ph{width:52px;flex:0 0 auto}
+.sel-who .who{min-width:0;flex:1;line-height:1.3}
+.sel-who .who a,.sel-who .who b{font-family:var(--display);font-size:17px;font-weight:600;display:block;color:var(--text)}
+.sel-who .who small{color:var(--dim);font-size:11px}
+.sel-tiers{display:flex;flex-wrap:wrap;gap:6px}
+.tier-btn{flex:1 1 72px;min-height:44px;padding:8px 10px;border:2px solid var(--c);border-radius:10px;background:color-mix(in srgb,var(--c) 22%,#0c0c1e);
+  color:#fff;font-family:var(--display);font-size:16px;font-weight:600;cursor:pointer}
+.tier-btn.on,.tier-btn:hover,.tier-btn:focus-visible{background:var(--c)}
+.edit-tiers{display:inline-block;margin-top:8px;font-size:13px}
+.add-more{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px}
+.add-more .add-label{font-size:12px;color:var(--dim)}
 
 .pool{display:flex;flex-wrap:wrap;gap:4px;min-height:60px;border-radius:8px}
 .pool.target{background:var(--accent-dim)}
@@ -126,6 +134,41 @@ a.tile:hover .ph{box-shadow:0 0 0 2px var(--gold)}
 .publish input,.field{font:inherit;font-size:14px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:#0f0f24;color:var(--text);min-width:0;width:100%}
 .publish input::placeholder,.field::placeholder{color:#6a6a8c}
 .tools{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap}
+
+/* The homepage: the featured debate (hero), the featured boards, the catalog. */
+.hero{display:grid;grid-template-columns:1fr;gap:16px;align-items:center;background:linear-gradient(160deg,rgba(255,107,53,.14),rgba(18,18,42,.9));
+  border:1px solid rgba(255,215,0,.3);border-radius:18px;padding:18px;margin-top:4px}
+.hero-pic{display:block;max-width:300px;width:100%;margin:0 auto;text-decoration:none}
+.hero-pic .ph{border-radius:14px}
+.hero-name{display:block;text-align:center;font-family:var(--display);font-size:18px;font-weight:600;color:var(--text);margin-top:6px}
+.hero-q{font-size:40px;line-height:1.02;margin-bottom:6px}
+.hero-choices{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px}
+.choice{min-height:56px;padding:12px 16px;border:2px solid var(--c);border-radius:12px;background:color-mix(in srgb,var(--c) 25%,#0c0c1e);color:#fff;
+  font-family:var(--display);font-size:22px;font-weight:700;letter-spacing:.3px;cursor:pointer;text-align:left}
+.choice:hover,.choice:focus-visible{background:var(--c)}
+.btn.big{font-size:20px;padding:14px 22px;margin-top:10px}
+.make-row{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin:14px 0 4px;font-size:13px;color:var(--dim)}
+.featured{display:grid;grid-template-columns:1fr;gap:12px;margin-top:12px}
+.feat{display:grid;grid-template-columns:96px 1fr;gap:14px;align-items:center;border-radius:16px;padding:14px;border:1px solid var(--line)}
+.feat-pic .ph{border-radius:10px}
+.feat h2{font-family:var(--display);font-size:24px;font-weight:700;line-height:1.1;color:#fff}
+.feat p{font-size:13px;margin:6px 0}
+.feat .feat-meta{font-size:12px;color:var(--dim)}
+.feat .btn{font-size:15px;padding:9px 16px}
+.feat-lakers{background:linear-gradient(135deg,#3a1f5c,#1a0f2e);border-color:#fdb92755}
+.feat-lakers h2{color:#fdb927}.feat-lakers .btn{background:linear-gradient(135deg,#552583,#fdb927);color:#fff}
+.feat-centers{background:linear-gradient(135deg,#0f3b44,#0a1a24);border-color:#2ec4b655}
+.feat-centers h2{color:#7ff0e5}.feat-centers .btn{background:linear-gradient(135deg,#118a7e,#2ec4b6);color:#04201d}
+.feat-draft{background:linear-gradient(135deg,#4a1e0c,#1c0d06);border-color:#ff6b3566}
+.feat-draft h2{color:#ffb27a}
+.catalog{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden}
+.cat-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line)}
+.cat-row:last-child{border-bottom:none}
+.cat-left{min-width:0;display:flex;flex-direction:column}
+.cat-title{font-family:var(--display);font-size:17px;font-weight:500;color:var(--text)}
+.cat-meta{font-size:11px;color:var(--dim)}
+.cat-links{display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:12px;font-weight:600;text-align:right}
+.cat-go{color:var(--gold)}.cat-cons{color:var(--dim)}
 
 /* The template list */
 .group{margin-top:22px}
@@ -213,6 +256,14 @@ a.tile:hover .ph{box-shadow:0 0 0 2px var(--gold)}
   h1{font-size:40px}
   .publish{grid-template-columns:1fr auto}
   .cards{grid-template-columns:1fr 1fr}
+  .hero{grid-template-columns:minmax(200px,300px) 1fr;padding:24px}
+  .hero-q{font-size:56px}
+  .hero-choices{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  .featured{grid-template-columns:repeat(3,1fr)}
+  .feat{grid-template-columns:1fr}
+  .feat-pic{max-width:140px}
+  .cat-links{flex-direction:row;gap:14px}
+  .selbar{margin:12px -20px 0;padding:10px 20px}
 }
 @media (min-width:861px){ .cards{grid-template-columns:1fr 1fr 1fr} }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}

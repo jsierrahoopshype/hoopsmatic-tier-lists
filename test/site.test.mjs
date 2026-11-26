@@ -199,3 +199,24 @@ test('pinned hand additions, the three-point and MVP orders', () => {
   assert.ok(src.includes("* (0.5 + winPct(teamNow(p)))"), 'MVP race x (0.5 + team win %)');
   assert.ok(JSON.parse(read('data/sources.lock.json')).sources.some((s) => s.id === 'standings'), 'standings pinned');
 });
+
+test('Stage A: hero, quick boards, preset tiers, placement bar, names never cut', () => {
+  const js = read('public/app.js'), css = read('public/style.css'), H = JSON.parse(read('public/hero.json'));
+  assert.equal(H.hero.question, 'Is Wemby in your MVP tier?');
+  const mvp = D.templates.find((t) => t.slug === H.hero.board);
+  assert.ok(mvp.players.slice().sort((a, b) => a[5] - b[5]).slice(0, 10).some((r) => r[0] === H.hero.player), 'the hero player is on the quick board');
+  assert.deepEqual(mvp.tiers, ['MVP favorite', 'In the race', 'Outside the race']);
+  assert.deepEqual(D.templates.find((t) => t.slug === '2026-27-rookie-of-the-year-race').tiers, ['Favorite', 'In the mix', 'Long shot']);
+  for (const t of D.templates.filter((x) => /-all-time$/.test(x.slug) && x.group === 'Teams')) assert.deepEqual(t.tiers, ['Franchise icon', 'All-time great', 'Fan favorite', 'Role player'], t.slug);
+  assert.ok(!D.templates.find((t) => t.slug === 'best-players-of-the-1990s').tiers, 'others: S to D');
+  for (const t of D.templates) assert.match(t.cta, /^Rank /, t.slug);
+  assert.deepEqual(H.featured.map((f) => f.slug), ['lakers-all-time', 'best-centers-of-the-1990s', '2003-draft-class']);
+  assert.match(js, /const QUICK = 10;/);
+  assert.ok(js.includes("if (!draftOf(hero.slug)) store.set("), 'the hero never overwrites a draft');
+  assert.ok(js.includes('Resume your list ('), 'resume');
+  assert.ok(js.includes('const need = Math.min(5, all.length);'), 'publish from 5 placed');
+  assert.ok(js.indexOf("app.appendChild(selbar);") > js.indexOf("tools.append(reset, cons); app.appendChild(tools);"), 'the placement bar is last in the page');
+  assert.match(css, /\.selbar\{position:sticky;bottom:0/);
+  assert.ok(!/\.tile \.nm\{[^}]*ellipsis/.test(css), 'tile names are never cut');
+  assert.ok(!/class="faces"|'faces'/.test(js), 'no headshot strips');
+});
