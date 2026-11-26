@@ -93,6 +93,19 @@ a.tile:hover .ph{box-shadow:0 0 0 2px var(--gold)}
 .board.armed .tier .drop{background:rgba(255,215,0,.04);outline:1px dashed rgba(255,215,0,.45);outline-offset:-4px}
 .tier .empty{font-size:12px;color:var(--dim);align-self:center;padding:0 5px}
 
+/* Named tiers (anything longer than two characters): a wider label column,
+   the name wrapped and smaller. */
+.board.named .tier{grid-template-columns:72px 1fr}
+.board.named .tier .lbl{font-size:13px;font-weight:600;line-height:1.1;text-align:center;padding:4px;overflow-wrap:anywhere}
+/* The tier editor: one row per tier, its colour, its name, Remove. */
+.tier-names{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.tier-name{display:grid;grid-template-columns:14px 1fr auto;align-items:center;gap:8px}
+.tier-name .sw{width:14px;height:28px;border-radius:4px}
+.tier-name .field{padding:8px 10px}
+.tier-name .linkbtn:disabled{color:var(--dim);cursor:default}
+.btn.small{font-size:14px;padding:8px 14px}
+.pool-size{margin-bottom:4px;flex-wrap:wrap}
+
 /* Selected player (ranking): sticks to the bottom of the screen while the
    reader scrolls up to a tier (part of the page, not an overlay). */
 .selbar{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--gold);
@@ -195,6 +208,8 @@ a.tile:hover .ph{box-shadow:0 0 0 2px var(--gold)}
   .ph.nophoto .ln{font-size:12px}
   .tier{grid-template-columns:56px 1fr;min-height:80px}
   .tier .lbl{font-size:30px}
+  .board.named .tier{grid-template-columns:110px 1fr}
+  .board.named .tier .lbl{font-size:16px}
   h1{font-size:40px}
   .publish{grid-template-columns:1fr auto}
   .cards{grid-template-columns:1fr 1fr}
