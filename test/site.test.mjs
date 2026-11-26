@@ -134,3 +134,29 @@ test('Stage 2: make your own list, the custom list page, the picker database', (
   assert.ok(js.includes("mailto:hoopsmatic@hoopsmatic.com?subject="), 'a Report link by email');
   assert.ok(!/type\s*=\s*['"]file['"]|FileReader|upload/i.test(js), 'no image uploads');
 });
+
+test('list ideas: data ideas fill real items, title-only ideas, calendar months, six at a time', () => {
+  const I = JSON.parse(read('public/ideas.json')).ideas, P = JSON.parse(read('public/players.json'));
+  const pid = new Set(P.players.map((r) => r[0])), tid = new Set(P.teams.map((r) => r[0]));
+  const ids = I.map((i) => i.id);
+  assert.equal(new Set(ids).size, ids.length, 'unique ids');
+  assert.equal(ids.filter((x) => x.startsWith('roster-')).length, 30, 'all 30 current rosters');
+  assert.ok(ids.includes('rookies'), "this season's rookies");
+  for (let y = 2000; y <= 2026; y++) assert.ok(ids.includes('draft-' + y), 'draft ' + y);
+  assert.equal(ids.filter((x) => x.startsWith('greats-')).length, 8, "the franchise pools' all-time greats");
+  for (const t of ['Best NBA arenas', 'Best jerseys of all time', 'Best nicknames', 'Best dunk contest dunks', 'Best playoff series of the 2010s', 'Best sneakers'])
+    assert.ok(I.some((i) => i.title === t && !i.items && !i.teams), t);
+  for (const i of I) {
+    assert.ok(i.title.length <= 80, i.id);
+    const n = (i.items || []).length + (i.teams || []).length;
+    if (i.items || i.teams) assert.ok(n >= 3 && n <= 100, i.id + ' size');
+    for (const p of i.items || []) assert.ok(pid.has(p), `${i.id}: ${p} is in players.json (so it links to its page)`);
+    for (const t of i.teams || []) assert.ok(tid.has(t), `${i.id}: team ${t}`);
+    for (const m of i.months || []) assert.ok(m >= 1 && m <= 12);
+  }
+  assert.deepEqual(I.find((i) => i.id === 'teams-cup').months, [11, 12], 'NBA Cup ideas first in Nov-Dec');
+  const js = read('public/app.js');
+  assert.ok(js.includes("Math.min(6, order.length)") && js.includes("'More ideas'"), 'six at a time, More ideas');
+  assert.ok(js.includes("'Make another'") && js.includes('!used.has(i.id)).slice(0, 3)'), 'Make another: three unused ideas');
+  assert.ok(!/carousel|swiper|scroll-snap/i.test(js + read('public/style.css')), 'no carousel');
+});
