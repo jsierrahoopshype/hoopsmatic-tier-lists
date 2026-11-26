@@ -190,46 +190,66 @@
   const fmtDate = (ms) => new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   // ================= the homepage =================
-  // HOMEPAGE (Jorge, Nov 26, 2026): one featured debate first (public/hero.json
-  // from rules/hero.json): the question big, one headshot on light grey, the
-  // board's own tiers as big buttons. A tap places him, saves the draft and
-  // opens the board with that pick in place. With a draft already started on
-  // that board: "Resume your list" instead, never overwritten. Then three
-  // featured boards, then the catalog by group, compact (no headshot strips).
+  // HOMEPAGE (Jorge, Nov 26, 2026). A debate fans really argue about leads:
+  // on every load the hero and three featured cards are drawn at random from
+  // the curated debates (public/hero.json, from rules/hero.json), no repeats
+  // on one page, the hero never the one this browser saw last, in-season
+  // debates weighted up. The hero: the question big, the player's headshot
+  // on light grey, the board's tiers as buttons (a tap places him, saves the
+  // draft, opens the board). With a draft on that board: "Resume your list"
+  // (or "Publish your list" when every shown player is placed), never
+  // overwritten. Then the catalog by group, one picture per row. Flat colours.
   const draftOf = (slug) => { const d = store.get('tl-rank-' + slug); return d && d.place && Object.keys(d.place).length ? d : null; };
   const tiersFor = (T) => (Array.isArray(T.tiers) && T.tiers.length >= TIER_MIN ? T.tiers : TIERS);
   const QUICK = 10;
+  function drawDebates(list, n, weight, avoid) {
+    const month = new Date().getMonth() + 1, pool = list.slice(), out = [];
+    const w = (x) => (x.months && x.months.includes(month) ? weight : 1);
+    while (out.length < n && pool.length) {
+      const cand = out.length === 0 && pool.length > 1 ? pool.filter((x) => x.id !== avoid) : pool;
+      let r = Math.random() * cand.reduce((a, x) => a + w(x), 0), pick = cand[cand.length - 1];
+      for (const x of cand) { r -= w(x); if (r <= 0) { pick = x; break; } }
+      out.push(pick); pool.splice(pool.indexOf(pick), 1);
+    }
+    return out;
+  }
+  function resumeText(T, d) {
+    const size = d.size || QUICK, placed = Object.keys(d.place).length;
+    const shown = new Set(T.players.slice().sort((a, b) => a[5] - b[5]).slice(0, size).map((r) => r[0]));
+    for (const id of Object.keys(d.place)) shown.add(id);
+    return placed >= shown.size ? 'Publish your list' : `Resume your list (${placed} of ${shown.size} placed)`;
+  }
   async function home() {
     await loadTemplates();
     let H = {};
     try { H = await (await fetch(BASE + 'hero.json', { cache: 'no-cache' })).json(); } catch (e) { /* the catalog still shows */ }
     app.textContent = '';
-    let counts = {};
-    try { counts = (await api('counts')).counts || {}; } catch (e) { /* counts are a nicety */ }
-    // The featured debate.
-    const hero = H.hero && templateOf(H.hero.board);
-    const hp = hero && hero.players.find((r) => r[0] === H.hero.player);
-    if (hero && hp) {
+    let C = {};
+    try { C = await api('counts'); } catch (e) { /* counts are a nicety */ }
+    const counts = C.counts || {};
+    const usable = (H.debates || []).filter((x) => { const T = templateOf(x.board); return T && T.players.some((r) => r[0] === x.player); });
+    const [hero, ...feat] = drawDebates(usable, 4, H.inSeasonWeight || 3, store.get('tl-last-hero'));
+    if (hero) {
+      store.set('tl-last-hero', hero.id);
+      const T = templateOf(hero.board), p = P(T.players.find((r) => r[0] === hero.player));
       const sec = el('section', 'hero');
-      const p = P(hp);
-      const d = draftOf(hero.slug);
       const pic = el('a', 'hero-pic'); pic.href = p.link; pic.appendChild(frame(p)); pic.appendChild(el('span', 'hero-name', p.name));
       const body = el('div', 'hero-body');
-      body.appendChild(el('h1', 'hero-q', H.hero.question));
+      body.appendChild(el('p', 'hero-board', T.title));
+      body.appendChild(el('h1', 'hero-q', hero.question));
+      const d = draftOf(T.slug);
       if (d) {
-        const n = Object.keys(d.place).length, size = d.size || QUICK;
-        body.appendChild(el('p', 'subtitle', `You have a ${hero.title} list in progress.`));
-        const a = el('a', 'btn big', `Resume your list (${n} of ${size} placed)`); a.href = BASE + hero.slug + '/'; body.appendChild(a);
+        body.appendChild(el('p', 'subtitle', `You have this board in progress.`));
+        const a = el('a', 'btn big', resumeText(T, d)); a.href = BASE + T.slug + '/'; body.appendChild(a);
       } else {
-        body.appendChild(el('p', 'subtitle', `Pick his tier and the rest of the ${hero.title} board opens with him in place.`));
+        body.appendChild(el('p', 'subtitle', `Pick his tier. The board opens with him in place.`));
         const row = el('div', 'hero-choices');
-        const names = tiersFor(hero), colors = tierColors(names.length);
+        const names = tiersFor(T), colors = tierColors(names.length);
         names.forEach((n, i) => {
           const b = el('button', 'choice', n); b.type = 'button'; b.style.setProperty('--c', colors[i]);
           b.addEventListener('click', () => {
-            // Never overwrite a draft (one could have been saved in another tab).
-            if (!draftOf(hero.slug)) store.set('tl-rank-' + hero.slug, { size: QUICK, tiers: names.map((x) => ({ name: x })), place: { [p.id]: i }, from: 'hero' });
-            location.href = BASE + hero.slug + '/';
+            if (!draftOf(T.slug)) store.set('tl-rank-' + T.slug, { size: QUICK, tiers: names.map((x) => ({ name: x })), place: { [p.id]: i }, from: 'hero' });
+            location.href = BASE + T.slug + '/';
           });
           row.appendChild(b);
         });
@@ -237,33 +257,34 @@
       }
       sec.append(pic, body); app.appendChild(sec);
     } else app.appendChild(el('h1', null, 'NBA Tier Lists'));
-    // Create your own: always there, second to the boards.
     if (customOpen(await loadConfig())) {
       const mk = el('div', 'make-row');
       mk.append('Have your own debate? ');
       const a = el('a', 'btn ghost small', 'Create your own'); a.href = BASE + 'make/'; mk.appendChild(a);
       app.appendChild(mk);
     }
-    // Three featured debates, each in its own look.
-    const feat = (H.featured || []).map((f) => ({ f, T: templateOf(f.slug) })).filter((x) => x.T);
+    // Three more debates, each card in its own flat colour (team boards in the team's).
     if (feat.length) {
       const fs = el('section', 'featured');
-      for (const { f, T } of feat) {
-        const c = el('article', 'feat feat-' + f.look);
-        const top = T.players.slice().sort((a, b) => a[5] - b[5]).find((r) => r[2]);
-        if (top) { const fr = el('div', 'feat-pic'); fr.appendChild(frame(P(top))); c.appendChild(fr); }
+      const FLAT = ['#1f2a5a', '#3b2416', '#13403a'];
+      feat.forEach((x, k) => {
+        const T = templateOf(x.board), p = P(T.players.find((r) => r[0] === x.player));
+        const c = el('article', 'feat'); c.style.setProperty('--bg', T.color || FLAT[k % FLAT.length]);
+        const fr = el('a', 'feat-pic'); fr.href = p.link; fr.appendChild(frame(p)); c.appendChild(fr);
         const w = el('div', 'feat-body');
-        w.appendChild(el('h2', null, T.title));
-        w.appendChild(el('p', null, f.line));
-        const m = el('p', 'feat-meta', `${Math.min(QUICK, T.players.length)} players` + (counts[T.slug] ? ` · ${counts[T.slug]} ${counts[T.slug] === 1 ? 'list' : 'lists'}` : ''));
-        w.appendChild(m);
+        w.appendChild(el('p', 'feat-board', T.title));
+        w.appendChild(el('h2', null, x.question));
+        const n = counts[T.slug] || 0;
+        w.appendChild(el('p', 'feat-meta', `${Math.min(QUICK, T.players.length)} players` + (n ? ` · ${n} ${n === 1 ? 'list' : 'lists'}` : '')));
         const d = draftOf(T.slug);
-        const a = el('a', 'btn', d ? 'Resume your list' : T.cta || 'Rank them'); a.href = BASE + T.slug + '/'; w.appendChild(a);
+        const a = el('a', 'btn', d ? resumeText(T, d) : T.cta || 'Rank them'); a.href = BASE + T.slug + '/'; w.appendChild(a);
         c.appendChild(w); fs.appendChild(c);
-      }
+      });
       app.appendChild(fs);
     }
-    // The catalog, compact, by group.
+    // The consensus leader of every board with 10+ lists (for its row's picture).
+    const leaders = {};
+    await Promise.all((C.ready || []).map(async (s) => { try { const x = await api('consensus/' + s); if (x.players && x.players[0]) leaders[s] = x.players[0].id; } catch (e) { /* the pick order stands in */ } }));
     const order = H.groups && H.groups.length ? H.groups : [...new Set(DATA.templates.map((t) => t.group))];
     for (const g of order) {
       const list = DATA.templates.filter((t) => t.group === g);
@@ -273,11 +294,21 @@
       const rows = el('div', 'catalog');
       for (const t of list) {
         const r = el('div', 'cat-row');
+        // One picture at the start: a team's logo; a draft class's No. 1 pick;
+        // otherwise the consensus leader (pick order until 10 lists). No photo, no picture.
+        const pic = el('span', 'cat-pic');
+        if (t.logo) { const im = el('img'); im.alt = ''; im.loading = 'lazy'; im.decoding = 'async'; im.src = LOGO + t.logo + '.svg'; im.onerror = () => pic.remove(); pic.classList.add('logo'); pic.appendChild(im); }
+        else {
+          const id = t.no1 || leaders[t.slug] || t.players.slice().sort((a, b) => a[5] - b[5])[0][0];
+          const row = t.players.find((x) => x[0] === id);
+          if (row && row[2]) { const im = el('img'); im.alt = ''; im.loading = 'lazy'; im.decoding = 'async'; im.width = 260; im.height = 190; im.src = NBA + row[2] + '.png'; im.onerror = () => pic.remove(); pic.appendChild(im); }
+        }
+        if (pic.firstChild) r.appendChild(pic);
         const h = el('a', 'cat-title', t.title); h.href = BASE + t.slug + '/';
         const n = counts[t.slug] || 0;
         const meta = el('span', 'cat-meta', `${Math.min(QUICK, t.players.length)} players` + (n ? ` · ${n} ${n === 1 ? 'list' : 'lists'}` : ''));
         const d = draftOf(t.slug);
-        const go = el('a', 'cat-go', d ? 'Resume' : t.cta || 'Rank them'); go.href = BASE + t.slug + '/';
+        const go = el('a', 'cat-go', d ? (resumeText(t, d) === 'Publish your list' ? 'Publish' : 'Resume') : t.cta || 'Rank them'); go.href = BASE + t.slug + '/';
         const cs = el('a', 'cat-cons', 'Consensus'); cs.href = BASE + t.slug + '/consensus/';
         const left = el('div', 'cat-left'); left.append(h, meta);
         const right = el('div', 'cat-links'); right.append(go, cs);

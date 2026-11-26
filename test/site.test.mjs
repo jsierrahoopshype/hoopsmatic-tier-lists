@@ -202,17 +202,29 @@ test('pinned hand additions, the three-point and MVP orders', () => {
 
 test('Stage A: hero, quick boards, preset tiers, placement bar, names never cut', () => {
   const js = read('public/app.js'), css = read('public/style.css'), H = JSON.parse(read('public/hero.json'));
-  assert.equal(H.hero.question, 'Is Wemby in your MVP tier?');
-  const mvp = D.templates.find((t) => t.slug === H.hero.board);
-  assert.ok(mvp.players.slice().sort((a, b) => a[5] - b[5]).slice(0, 10).some((r) => r[0] === H.hero.player), 'the hero player is on the quick board');
+  // 20+ curated debates, each a real board and player, no repeated question, no Wemby yes/no.
+  assert.ok(H.debates.length >= 20, 'at least 20 debates');
+  assert.equal(new Set(H.debates.map((x) => x.question)).size, H.debates.length, 'no question twice');
+  assert.ok(!H.debates.some((x) => /Is Wemby in your MVP tier/.test(x.question)), 'the old question is gone');
+  for (const x of H.debates) assert.ok(D.templates.find((t) => t.slug === x.board).players.some((r) => r[0] === x.player), x.id);
+  const mvp = D.templates.find((t) => t.slug === '2026-27-mvp-race');
   assert.deepEqual(mvp.tiers, ['MVP favorite', 'In the race', 'Outside the race']);
   assert.deepEqual(D.templates.find((t) => t.slug === '2026-27-rookie-of-the-year-race').tiers, ['Favorite', 'In the mix', 'Long shot']);
   for (const t of D.templates.filter((x) => /-all-time$/.test(x.slug) && x.group === 'Teams')) assert.deepEqual(t.tiers, ['Franchise icon', 'All-time great', 'Fan favorite', 'Role player'], t.slug);
   assert.ok(!D.templates.find((t) => t.slug === 'best-players-of-the-1990s').tiers, 'others: S to D');
   for (const t of D.templates) assert.match(t.cta, /^Rank /, t.slug);
-  assert.deepEqual(H.featured.map((f) => f.slug), ['lakers-all-time', 'best-centers-of-the-1990s', '2003-draft-class']);
+  // Random hero and three cards per load, never the last hero; Resume / Publish wording.
+  assert.ok(js.includes("drawDebates(usable, 4, H.inSeasonWeight || 3, store.get('tl-last-hero'))"));
+  assert.ok(js.includes("'Publish your list'"));
+  // No gradients in the homepage section.
+  const homeCss = css.slice(css.indexOf('/* The homepage (Jorge'), css.indexOf('/* The template list */'));
+  assert.ok(!/gradient/.test(homeCss), 'flat colours on the homepage');
+  // Catalog pictures: team logos, draft No. 1 picks.
+  for (const t of D.templates.filter((x) => x.group === 'Teams')) assert.match(t.logo || '', /^[a-z]{3}$/, t.slug);
+  assert.equal(D.templates.find((t) => t.slug === '2003-draft-class').no1, 'lebron-james');
+  assert.equal(D.templates.find((t) => t.slug === '1996-draft-class').no1, 'allen-iverson');
   assert.match(js, /const QUICK = 10;/);
-  assert.ok(js.includes("if (!draftOf(hero.slug)) store.set("), 'the hero never overwrites a draft');
+  assert.ok(js.includes("if (!draftOf(T.slug)) store.set('tl-rank-' + T.slug"), 'the hero never overwrites a draft');
   assert.ok(js.includes('Resume your list ('), 'resume');
   assert.ok(js.includes('const need = Math.min(5, all.length);'), 'publish from 5 placed');
   assert.ok(js.indexOf("app.appendChild(selbar);") > js.indexOf("tools.append(reset, cons); app.appendChild(tools);"), 'the placement bar is last in the page');
