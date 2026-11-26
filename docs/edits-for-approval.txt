@@ -63,6 +63,7 @@ Best international players of all time
   + add Predrag Stojakovic: Serbian three-time All-Star.
   - remove Carlos Boozer: Born on a U.S. military base in Germany; raised in Alaska.
   - remove Dominique Wilkins: Born in Paris to a U.S. military family; raised in the U.S.
+  - remove Kyrie Irving: Born in Australia to American parents; raised in the U.S. and plays for the U.S.
 
 Heat all-time
   - remove Joel Anthony: Minutes, not impact.

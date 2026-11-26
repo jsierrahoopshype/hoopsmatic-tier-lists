@@ -274,6 +274,9 @@
         store.set('tl-name', name.value.trim());
         // Lists published from this browser: their page says "your list".
         store.set('tl-mine', [...(store.get('tl-mine') || []), r.id].slice(-50));
+        // From launch the server seals a badge receipt; the list's own page
+        // hands it to the badges (HMGames.badgeResult) once, then forgets it.
+        if (typeof r.badge === 'string') store.set('tl-badge', { id: r.id, receipt: r.badge });
         location.href = BASE + T.slug + '/?l=' + encodeURIComponent(r.id);
       } catch (x) {
         const m = { bad_name: "That name can't be used. Try another, or leave it blank.", too_many: 'Too many lists from here today. Try again tomorrow.', bad_tiers: 'Something is off with this list. Reload the page and try again.' };
@@ -318,6 +321,19 @@
     const a1 = el('a', 'btn', own ? 'Edit and republish' : 'Make your own list'); a1.href = BASE + T.slug + '/';
     const a2 = el('a', null, "See the fans' consensus"); a2.href = BASE + T.slug + '/consensus/'; a2.style.fontSize = '.85rem';
     tools.append(a1, a2); app.appendChild(tools);
+    badges(L.id, own);
+  }
+
+  // ---------- badges (hoopsmatic-badges, game id "tierlists") ----------
+  // The receipt from the publish reply goes to the shared games script
+  // (/hoopsmatic-games.js), which shows the badge card inside the page, in
+  // #games-promo. No pop-up. Only on the maker's own list, only once.
+  function badges(listId, own) {
+    const pend = store.get('tl-badge');
+    if (!own || !pend || pend.id !== listId || typeof pend.receipt !== 'string') return;
+    store.set('tl-badge', null);
+    const host = el('div'); host.id = 'games-promo'; app.appendChild(host);
+    try { if (window.HMGames && typeof window.HMGames.badgeResult === 'function') window.HMGames.badgeResult('tierlists', pend.receipt); } catch (e) { /* badges are extra */ }
   }
 
   // ---------- the share image (1080x1080) ----------

@@ -2,7 +2,7 @@
 //   public/index.html                     /tier-lists/ (the template list)
 //   public/<slug>/index.html              /tier-lists/<slug>/ (rank; ?l=<id> a published list)
 //   public/<slug>/consensus/index.html    /tier-lists/<slug>/consensus/
-//   public/config.json                    {launch} from rules/launch.json
+//   public/config.json                    {launch, moment} from rules/launch.json
 //   data/sitemap-state.json (+ public/)   per-URL content hash and lastmod
 // Each page carries its own title, description, canonical and og: tags (all on
 // hoopsmatic.com) and a plain HTML version of its content (title, line,
@@ -60,7 +60,7 @@ for (const [path, html] of Object.entries(pages)) {
   mkdirSync(dir, { recursive: true });
   writeFileSync(dir + 'index.html', html);
 }
-writeFileSync(ROOT + 'public/config.json', JSON.stringify({ launch: L.launch || null }) + '\n');
+writeFileSync(ROOT + 'public/config.json', JSON.stringify({ launch: L.launch || null, moment: L.moment || null }) + '\n');
 
 // Sitemap state: a URL's lastmod moves only when its page's content changes.
 const file = ROOT + 'data/sitemap-state.json';
@@ -69,8 +69,11 @@ const today = new Date().toISOString().slice(0, 10);
 const urls = {};
 let moved = 0;
 for (const [path, html] of Object.entries(pages)) {
-  // The hash leaves out the cache-buster, so a CSS or JS change alone does not move lastmod.
-  const hash = createHash('sha256').update(html.replace(/\?v=[0-9a-f]{10}/g, '')).digest('hex').slice(0, 16);
+  // The hash leaves out the cache-buster and the shared games script's tag
+  // (badges), so a CSS, JS or script-tag change alone does not move lastmod.
+  const content = html.replace(/\?v=[0-9a-f]{10}/g, '')
+    .replace(/<!-- The shared games script:[^>]*-->\n<script src="\/hoopsmatic-games\.js"[^>]*><\/script>\n/, '');
+  const hash = createHash('sha256').update(content).digest('hex').slice(0, 16);
   const prev = old[path];
   if (prev && prev.hash === hash) urls[path] = prev; else { urls[path] = { hash, lastmod: today }; moved++; }
 }
