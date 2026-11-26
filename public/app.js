@@ -504,11 +504,10 @@
     const tools = el('div', 'tools'); const clear = el('button', 'linkbtn', 'Start over'); clear.type = 'button'; tools.append(go, clear);
     app.appendChild(tools); app.appendChild(note);
 
-    let DB = null;
-    try { DB = await (await fetch(BASE + 'players.json', { cache: 'force-cache' })).json(); } catch (e) { DB = { players: [], teams: [] }; }
-    const pById = new Map(DB.players.map((r) => [r[0], r])), tById = new Map(DB.teams.map((r) => [r[0], r]));
+    // The database loads in the background; typing works at once (text
+    // items), and the search fills in as soon as it arrives.
+    let DB = { players: [], teams: [] }, pById = new Map(), tById = new Map(), idx = [];
     const fold = (s) => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9 ]/g, '');
-    const idx = DB.players.map((r) => [fold(r[1]), r]);
     const asP = (x) => x.p ? { id: 'p:' + x.p, name: (pById.get(x.p) || [])[1] || x.p, nba: (pById.get(x.p) || [])[2] || 0, link: (pById.get(x.p) || [])[3] || '', team: (pById.get(x.p) || [])[4] || '' }
       : x.t ? { id: 't:' + x.t, name: (tById.get(x.t) || [])[1] || x.t, logo: x.t, link: (tById.get(x.t) || [])[2] || '', team: 'Team' }
       : { id: 'x:' + x.x.toLowerCase(), name: x.x, text: true };
@@ -556,6 +555,10 @@
     }
     ti.addEventListener('input', () => { title = ti.value; save(); note.classList.remove('err'); draw(); });
     q.addEventListener('input', search);
+    fetch(BASE + 'players.json', { cache: 'force-cache' }).then((r) => r.json()).then((d) => {
+      DB = d; pById = new Map(DB.players.map((r) => [r[0], r])); tById = new Map(DB.teams.map((r) => [r[0], r]));
+      idx = DB.players.map((r) => [fold(r[1]), r]); draw(); search();
+    }).catch(() => { /* typed items still work */ });
     q.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); const first = results.querySelector('.res'); if (first) first.click(); } });
     clear.addEventListener('click', () => { items = []; title = ''; ti.value = ''; save(); draw(); });
     go.addEventListener('click', () => {
