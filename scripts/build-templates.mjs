@@ -166,7 +166,31 @@ for (const t of T) {
   for (const p of pool) p.nba = await nbaIdOf(p);
   out.push({ t, pool });
 }
-await checkHeads(out.flatMap((o) => o.pool.map((p) => p.nba)));
+// THE PICKER'S DATABASE (Stage 2, "Make your own list"): every player with a
+// HoopsMatic page (name without the namesake year, NBA.com id with a real
+// photo or 0, page, first and last season) and the 30 current teams (NBA
+// code, name, roster page; logos are our own files). public/players.json;
+// the tier-lists server checks every picked item against it.
+const pickable = players.filter((p) => p.link && p.firstYear);
+for (const p of pickable) p.nba = await nbaIdOf(p);
+await checkHeads([...out.flatMap((o) => o.pool.map((p) => p.nba)), ...pickable.map((p) => p.nba)]);
+const TEAMS = [['atl', 'Atlanta Hawks', 'atlanta'], ['bos', 'Boston Celtics', 'boston'], ['bkn', 'Brooklyn Nets', 'brooklyn'], ['cha', 'Charlotte Hornets', 'charlotte'],
+  ['chi', 'Chicago Bulls', 'chicago'], ['cle', 'Cleveland Cavaliers', 'cleveland'], ['dal', 'Dallas Mavericks', 'dallas'], ['den', 'Denver Nuggets', 'denver'],
+  ['det', 'Detroit Pistons', 'detroit'], ['gsw', 'Golden State Warriors', 'golden-state'], ['hou', 'Houston Rockets', 'houston'], ['ind', 'Indiana Pacers', 'indiana'],
+  ['lac', 'LA Clippers', 'la-clippers'], ['lal', 'Los Angeles Lakers', 'la-lakers'], ['mem', 'Memphis Grizzlies', 'memphis'], ['mia', 'Miami Heat', 'miami'],
+  ['mil', 'Milwaukee Bucks', 'milwaukee'], ['min', 'Minnesota Timberwolves', 'minnesota'], ['nop', 'New Orleans Pelicans', 'new-orleans'], ['nyk', 'New York Knicks', 'new-york'],
+  ['okc', 'Oklahoma City Thunder', 'oklahoma-city'], ['orl', 'Orlando Magic', 'orlando'], ['phi', 'Philadelphia 76ers', 'philadelphia'], ['phx', 'Phoenix Suns', 'phoenix'],
+  ['por', 'Portland Trail Blazers', 'portland'], ['sac', 'Sacramento Kings', 'sacramento'], ['sas', 'San Antonio Spurs', 'san-antonio'], ['tor', 'Toronto Raptors', 'toronto'],
+  ['uta', 'Utah Jazz', 'utah'], ['was', 'Washington Wizards', 'washington']];
+{
+  const rows = pickable.map((p) => [p.id, p.name.replace(/\s*\(\d{4}\)$/, ''), p.nba && heads[p.nba] === 1 ? p.nba : 0, p.link, `${p.firstYear - 1}-${p.lastYear}`])
+    .sort((a, b) => a[1].localeCompare(b[1]) || a[4].localeCompare(b[4]));
+  writeFileSync(ROOT + 'public/players.json', JSON.stringify({
+    _about: 'The picker for custom tier lists (scripts/build-templates.mjs): players [id, name, NBA.com person id with a real photo or 0, HoopsMatic page, seasons first-last] and teams [NBA code, name, HoopsMatic page]. The tier-lists server checks every picked item against this file.',
+    v: 1, players: rows, teams: TEAMS.map(([a, n, s]) => [a, n, 'https://hoopsmatic.com/roster/' + s]),
+  }) + '\n');
+  console.log(`players.json: ${rows.length} players (${rows.filter((r) => r[2]).length} with a photo), ${TEAMS.length} teams`);
+}
 
 let slots = 0, photo = 0;
 const templates = out.map(({ t, pool }) => {

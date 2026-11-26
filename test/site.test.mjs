@@ -73,7 +73,8 @@ test('launch: Nov 30, 2026, 15:00 Madrid (9:00 AM ET)', () => {
   const L = JSON.parse(read('rules/launch.json')), C = JSON.parse(read('public/config.json'));
   assert.equal(L.launch, '2026-11-30');
   assert.equal(L.moment, '2026-11-30T14:00:00Z');
-  assert.deepEqual(C, { launch: L.launch, moment: L.moment });
+  assert.deepEqual(C, { launch: L.launch, moment: L.moment, customFrom: L.customFrom });
+  assert.ok(Date.parse(L.customFrom) >= Date.parse(L.moment), 'Stage 2 opens at launch or later');
   const at = (tz) => new Intl.DateTimeFormat('en-GB', { timeZone: tz, dateStyle: 'short', timeStyle: 'short' }).format(new Date(L.moment));
   assert.equal(at('Europe/Madrid'), '30/11/2026, 15:00');
   assert.equal(at('America/New_York'), '30/11/2026, 09:00');
@@ -118,4 +119,18 @@ test('badges: the publish receipt goes to HMGames.badgeResult once, in the page 
   assert.ok(js.includes("host.id = 'games-promo'"));
   assert.match(h, /<script src="\/hoopsmatic-games\.js" data-hm-game="tierlists" defer><\/script>/);
   assert.ok(!/data-hm-(cards|footer)=/.test(h), 'no auto cards (no carousel), no footer strip');
+});
+
+test('Stage 2: make your own list, the custom list page, the picker database', () => {
+  const js = read('public/app.js'), P = JSON.parse(read('public/players.json'));
+  for (const f of ['public/make/index.html', 'public/list/index.html']) assert.ok(existsSync(ROOT + f), f);
+  assert.match(read('public/make/index.html'), /data-page="make"/);
+  assert.match(read('public/list/index.html'), /data-page="custom"/);
+  assert.ok(P.players.length > 4000 && P.teams.length === 30, 'every player with a page, and the 30 teams');
+  for (const r of P.players) { assert.match(r[3], /^https:\/\/hoopsmatic\.com\//); assert.ok(!/\(\d{4}\)$/.test(r[1]), r[1]); }
+  assert.match(js, /const TITLE_MAX = 80, TEXT_MAX = 40, MIN_ITEMS = 3, MAX_ITEMS = 100;/);
+  assert.ok(js.includes("api('custom', { device: device(), title: T.title"), 'publishing a new list sends its items');
+  assert.ok(js.includes("'Rank this list yourself'") && js.includes("&view=consensus"), 'rank it yourself and its consensus');
+  assert.ok(js.includes("mailto:hoopsmatic@hoopsmatic.com?subject="), 'a Report link by email');
+  assert.ok(!/type\s*=\s*['"]file['"]|FileReader|upload/i.test(js), 'no image uploads');
 });
