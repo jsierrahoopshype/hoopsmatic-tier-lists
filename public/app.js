@@ -315,7 +315,7 @@
       try {
         const r = T.make ? await api('custom', { device: device(), title: T.title, name: name.value.trim() || null, items: T.make, tiers })
           : await api('publish', { device: device(), slug: T.slug, name: name.value.trim() || null, tiers });
-        if (T.make) store.set('tl-make', null);
+        if (T.make) { store.set('tl-make', null); if (T.idea) store.set('tl-ideas-used', [...usedIdeas(), T.idea].slice(-200)); }
         store.set('tl-name', name.value.trim());
         // Lists published from this browser: their page says "your list".
         store.set('tl-mine', [...(store.get('tl-mine') || []), r.id].slice(-50));
@@ -370,7 +370,21 @@
     const a2 = el('a', null, "See the fans' consensus"); a2.href = custom ? BASE + 'list/?c=' + custom + '&view=consensus' : BASE + T.slug + '/consensus/'; a2.style.fontSize = '.85rem';
     tools.append(a1, a2); app.appendChild(tools);
     app.appendChild(reportLink(url));
+    if (own) makeAnother();
     badges(L.id, own);
+  }
+
+  // After publishing: "Make another", three ideas this browser hasn't used.
+  async function makeAnother() {
+    if (!customOpen(await loadConfig())) return;
+    const used = new Set(usedIdeas());
+    const pick = ideasToday(await loadIdeas()).filter((i) => !used.has(i.id)).slice(0, 3);
+    if (!pick.length) return;
+    const sec = el('section', 'section');
+    const h = el('div', 'section-head'); h.appendChild(el('h2', null, 'Make another')); sec.appendChild(h);
+    const box = el('div', 'ideas'); for (const i of pick) box.appendChild(ideaButton(i)); sec.appendChild(box);
+    const a = el('a', 'linkbtn', 'Start from scratch'); a.href = BASE + 'make/'; sec.appendChild(a);
+    app.appendChild(sec);
   }
 
   // ---------- badges (hoopsmatic-badges, game id "tierlists") ----------
@@ -472,6 +486,33 @@
   // characters, a text tile). Then the same ranking screen; publishing sends
   // the items with the ranking. The draft is kept in this browser.
   const TITLE_MAX = 80, TEXT_MAX = 40, MIN_ITEMS = 3, MAX_ITEMS = 100;
+  // LIST IDEAS (public/ideas.json, built from our data): today's order. The
+  // ideas in season this month come first (NBA Cup Nov-Dec, All-Star and the
+  // trade deadline Feb, playoffs Apr-Jun, the draft Jun), then the rest; each
+  // group in an order that changes every day and is the same for everyone.
+  let IDEAS = null;
+  async function loadIdeas() {
+    if (IDEAS) return IDEAS;
+    try { IDEAS = (await (await fetch(BASE + 'ideas.json', { cache: 'no-cache' })).json()).ideas || []; } catch (e) { IDEAS = []; }
+    return IDEAS;
+  }
+  function ideasToday(list, d = new Date()) {
+    const day = Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 86400000), month = d.getMonth() + 1;
+    const h = (s) => { let x = 2166136261 ^ day; for (let i = 0; i < s.length; i++) { x ^= s.charCodeAt(i); x = Math.imul(x, 16777619); } return x >>> 0; };
+    const shuffled = (a) => a.slice().sort((x, y) => h(x.id) - h(y.id));
+    const now = list.filter((i) => i.months && i.months.includes(month));
+    return [...shuffled(now), ...shuffled(list.filter((i) => !now.includes(i)))];
+  }
+  const usedIdeas = () => (Array.isArray(store.get('tl-ideas-used')) ? store.get('tl-ideas-used') : []);
+  // An idea as a button: its title and what it fills.
+  function ideaButton(i, onPick) {
+    const b = el(onPick ? 'button' : 'a', 'idea');
+    if (onPick) { b.type = 'button'; b.addEventListener('click', () => onPick(i)); } else b.href = BASE + 'make/?idea=' + encodeURIComponent(i.id);
+    b.appendChild(el('span', 'nm', i.title));
+    const n = (i.items || i.teams || []).length;
+    b.appendChild(el('small', null, n ? `${n} ${i.teams ? 'teams' : 'players'} filled in` : 'You add the items'));
+    return b;
+  }
   async function make() {
     app.textContent = '';
     if (!customOpen(await loadConfig())) {
@@ -482,10 +523,24 @@
     const draft = store.get('tl-make') || {};
     let title = typeof draft.title === 'string' ? draft.title.slice(0, TITLE_MAX) : '';
     let items = Array.isArray(draft.items) ? draft.items.filter((x) => x && (x.p || x.t || x.x)).slice(0, MAX_ITEMS) : [];
-    const save = () => store.set('tl-make', { title, items });
+    let idea = typeof draft.idea === 'string' ? draft.idea : null;
+    const save = () => store.set('tl-make', { title, items, idea });
     const nav = el('nav', 'tabs'); const back = el('a', null, 'All tier lists'); back.href = BASE; nav.appendChild(back); app.appendChild(nav);
     app.appendChild(el('h1', null, 'Make your own tier list'));
     app.appendChild(el('p', 'subtitle', 'Give it a title, add 3 to 100 items (NBA players, teams or anything you type), then rank them S to D.'));
+    // Ideas: six at a time, in the page (wrapping rows), "More ideas" for the next six.
+    const s0 = el('section', 'section');
+    const h0 = el('div', 'section-head'); h0.appendChild(el('h2', null, 'Ideas')); s0.appendChild(h0);
+    const ideaBox = el('div', 'ideas'); s0.appendChild(ideaBox);
+    const more = el('button', 'linkbtn', 'More ideas'); more.type = 'button'; s0.appendChild(more);
+    app.appendChild(s0);
+    let order = [], at = 0;
+    function showIdeas() {
+      ideaBox.textContent = '';
+      for (let k = 0; k < Math.min(6, order.length); k++) ideaBox.appendChild(ideaButton(order[(at + k) % order.length], applyIdea));
+      more.classList.toggle('hide', order.length <= 6);
+    }
+    more.addEventListener('click', () => { at = (at + 6) % Math.max(1, order.length); showIdeas(); });
     // Title
     const s1 = el('section', 'section');
     const h1 = el('div', 'section-head'); h1.appendChild(el('h2', null, 'Title')); const tc = el('span', 'count'); h1.appendChild(tc); s1.appendChild(h1);
@@ -553,7 +608,21 @@
       go.disabled = !(ti.value.trim() && items.length >= MIN_ITEMS);
       if (!note.classList.contains('err')) note.textContent = go.disabled ? (ti.value.trim() ? `Add at least ${MIN_ITEMS} items.` : 'Give your list a title.') : 'Tap an item to take it off. Ready to rank?';
     }
-    ti.addEventListener('input', () => { title = ti.value; save(); note.classList.remove('err'); draw(); });
+    ti.addEventListener('input', () => { title = ti.value; idea = null; save(); note.classList.remove('err'); draw(); });
+    // An idea fills the title, and for a data idea the items too (replacing the list).
+    function applyIdea(i) {
+      title = i.title.slice(0, TITLE_MAX); ti.value = title; idea = i.id;
+      if (i.items || i.teams) items = [...(i.items || []).map((p) => ({ p })), ...(i.teams || []).map((t) => ({ t }))].slice(0, MAX_ITEMS);
+      save(); note.classList.remove('err'); draw();
+      note.textContent = i.items || i.teams ? `Filled in: ${items.length} items. Take any off or add your own, then rank them.` : 'Title filled in. Now add your items.';
+      s1.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }
+    loadIdeas().then((list) => {
+      order = ideasToday(list); showIdeas();
+      const want = new URLSearchParams(location.search).get('idea');
+      const i = want && list.find((x) => x.id === want);
+      if (i) applyIdea(i);
+    });
     q.addEventListener('input', search);
     fetch(BASE + 'players.json', { cache: 'force-cache' }).then((r) => r.json()).then((d) => {
       DB = d; pById = new Map(DB.players.map((r) => [r[0], r])); tById = new Map(DB.teams.map((r) => [r[0], r]));
@@ -562,7 +631,7 @@
     q.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); const first = results.querySelector('.res'); if (first) first.click(); } });
     clear.addEventListener('click', () => { items = []; title = ''; ti.value = ''; save(); draw(); });
     go.addEventListener('click', () => {
-      const T = { slug: 'c:new', title: ti.value.trim().slice(0, TITLE_MAX), blurb: '', items: items.map((x, i) => ({ ...asP(x), id: 'i' + i })), make: items.map((x) => (x.p ? { p: x.p } : x.t ? { t: x.t } : { x: x.x })) };
+      const T = { slug: 'c:new', title: ti.value.trim().slice(0, TITLE_MAX), blurb: '', idea, items: items.map((x, i) => ({ ...asP(x), id: 'i' + i })), make: items.map((x) => (x.p ? { p: x.p } : x.t ? { t: x.t } : { x: x.x })) };
       store.set('tl-rank-c:new', null);
       rank(T); window.scrollTo(0, 0);
     });

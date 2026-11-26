@@ -175,6 +175,12 @@ a.tile:hover .ph{box-shadow:0 0 0 2px var(--gold)}
 .chosen .empty{font-size:12px;color:var(--dim);align-self:center;padding:6px}
 .ph img.logo{object-fit:contain;object-position:center;padding:10%}
 .make-cta{border-color:rgba(255,215,0,.35)}
+/* List ideas: wrapping rows of buttons in the page, never a sliding strip or a pop-up. */
+.ideas{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.idea{flex:1 1 160px;display:flex;flex-direction:column;gap:2px;text-align:left;padding:9px 11px;border-radius:10px;border:1px solid var(--line);background:#0f0f24;color:var(--text);cursor:pointer;font:inherit;text-decoration:none}
+.idea:hover,.idea:focus-visible{border-color:var(--gold);text-decoration:none}
+.idea .nm{font-family:var(--display);font-size:16px;font-weight:500;line-height:1.2}
+.idea small{color:var(--dim);font-size:11px}
 
 .report{font-size:12px;color:var(--dim)}
 .report a{color:var(--dim);text-decoration:underline}

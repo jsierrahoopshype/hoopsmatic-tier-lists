@@ -192,6 +192,52 @@ const TEAMS = [['atl', 'Atlanta Hawks', 'atlanta'], ['bos', 'Boston Celtics', 'b
   console.log(`players.json: ${rows.length} players (${rows.filter((r) => r[2]).length} with a photo), ${TEAMS.length} teams`);
 }
 
+// LIST IDEAS for "Make your own list" (Jorge, Nov 26, 2026): public/ideas.json.
+// Data ideas fill the title and the items (players from players.json, so every
+// tile links to its HoopsMatic page; teams by code, linking to their roster
+// page); title-only ideas leave the items to the reader. months: when an idea
+// is in season (it is shown first then): NBA Cup Nov-Dec, All-Star and the
+// trade deadline Feb, playoffs Apr-Jun, the draft Jun. Items in alphabetical
+// order (no ranking hint). A data idea needs 3 to 100 items, like any list.
+{
+  const inPick = new Set(pickable.map((p) => p.id));
+  const byLast = (a, b) => last(a.name).localeCompare(last(b.name)) || a.name.localeCompare(b.name);
+  const ideas = [];
+  const dataIdea = (id, title, ps, months = null) => {
+    const items = ps.filter((p) => inPick.has(p.id)).sort(byLast).slice(0, 100).map((p) => p.id);
+    if (items.length >= 3) ideas.push({ id, title, items, ...(months ? { months } : {}) });
+  };
+  // This season's rosters (each player under his latest team this season).
+  const latestTeam = (p) => { const s = p.seasons.filter((x) => x.y === NOW); return s.length ? s[s.length - 1].code : null; };
+  for (const [abbr, name] of TEAMS) dataIdea('roster-' + abbr, `Rank the ${name} roster`, players.filter((p) => latestTeam(p) === abbr.toUpperCase()));
+  dataIdea('rookies', "Rank this season's rookies", players.filter((p) => p.firstYear === NOW && gpIn(p, NOW) > 0));
+  // This season's All-Stars: only once they are in the data (announced).
+  dataIdea('all-stars', "Rank this season's All-Stars", players.filter((p) => p.allStar.some((a) => a.y === NOW)), [1, 2]);
+  // First-round draft classes from 2000 (29 picks a round until 2004, 30 since).
+  for (let y = NOW - 1; y >= 2000; y--) dataIdea('draft-' + y, `Rank the ${y} draft class`, players.filter((p) => p.draftYear === y && p.pick && p.pick <= (y < 2004 ? 29 : 30)), y >= NOW - 2 ? [6] : null);
+  // A team's all-time greats: the existing franchise template pools.
+  // Its top 30 by the pool's own data order (the greats, not the whole bench).
+  for (const o of out.filter(({ t }) => t.code)) {
+    const team = (TEAMS.find(([a]) => a === o.t.code.toLowerCase()) || [])[1] || o.t.title.replace(/ all-time$/, '');
+    dataIdea('greats-' + o.t.code.toLowerCase(), `Rank the ${team}${team.endsWith('s') ? "'" : "'s"} all-time greats`, o.pool.slice(0, 30));
+  }
+  // All 30 teams (NBA Cup season first).
+  ideas.push({ id: 'teams-cup', title: 'Rank all 30 teams for the NBA Cup', teams: TEAMS.map(([a]) => a), months: [11, 12] });
+  ideas.push({ id: 'teams-now', title: 'Rank all 30 teams right now', teams: TEAMS.map(([a]) => a) });
+  // Title-only ideas: the reader adds the items.
+  for (const [id, title, months] of [
+    ['arenas', 'Best NBA arenas'], ['jerseys', 'Best jerseys of all time'], ['nicknames', 'Best nicknames'],
+    ['dunk-contest', 'Best dunk contest dunks', [2]], ['playoff-series-2010s', 'Best playoff series of the 2010s', [4, 5, 6]], ['sneakers', 'Best sneakers'],
+    ['cup-moments', 'Best NBA Cup moments', [11, 12]], ['all-star-moments', 'Best All-Star Game moments', [2]],
+    ['deadline-deals', 'Best trade deadline deals ever', [2]], ['playoff-runs', 'Best playoff runs of all time', [4, 5, 6]],
+    ['draft-steals', 'Biggest draft steals ever', [6]]]) ideas.push({ id, title, ...(months ? { months } : {}) });
+  writeFileSync(ROOT + 'public/ideas.json', JSON.stringify({
+    _about: 'List ideas for Make your own list (scripts/build-templates.mjs): {id, title, items?: [player ids from players.json], teams?: [team codes], months?: [1-12, in season]}. No items: the reader adds them.',
+    v: 1, ideas,
+  }) + '\n');
+  console.log(`ideas.json: ${ideas.length} ideas (${ideas.filter((i) => i.items || i.teams).length} with items)`);
+}
+
 let slots = 0, photo = 0;
 const templates = out.map(({ t, pool }) => {
   const list = pool.map((p) => {
