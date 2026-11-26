@@ -160,3 +160,26 @@ test('list ideas: data ideas fill real items, title-only ideas, calendar months,
   assert.ok(js.includes("'Make another'") && js.includes('!used.has(i.id)).slice(0, 3)'), 'Make another: three unused ideas');
   assert.ok(!/carousel|swiper|scroll-snap/i.test(js + read('public/style.css')), 'no carousel');
 });
+
+test('pool order, sizes, tiers and tile names', () => {
+  const js = read('public/app.js');
+  for (const t of D.templates) {
+    const ranks = t.players.map((p) => p[5]).sort((a, b) => a - b);
+    assert.deepEqual(ranks, t.players.map((_, i) => i + 1), t.slug + ': an order 1..n behind the pool');
+  }
+  assert.match(js, /const TIER_MIN = 2, TIER_MAX = 10, TIER_NAME_MAX = 20;/);
+  assert.match(js, /const SIZES = \[10, 25, 50\];/);
+  // The page's own label rule: no two tiles read the same, in any pool, at any size.
+  const src = js.slice(js.indexOf('  function tileLabels(ps) {'), js.indexOf('    return ps;\n  }') + '    return ps;\n  }'.length);
+  const tileLabels = new Function(src + '\nreturn tileLabels;')();
+  const sizesOf = (n) => [...[10, 25, 50].filter((s) => s < n), n];
+  for (const t of D.templates) {
+    const order = t.players.slice().sort((a, b) => a[5] - b[5]);
+    for (const n of sizesOf(order.length)) {
+      const labels = tileLabels(order.slice(0, n).map((r) => ({ id: r[0], name: r[1] }))).map((p) => p.label);
+      assert.equal(new Set(labels).size, labels.length, `${t.slug} top ${n}: ${labels.filter((l, i) => labels.indexOf(l) !== i).join(', ')}`);
+    }
+  }
+  const L = tileLabels([{ name: 'Paul George' }, { name: 'Kenyon George' }, { name: 'Gary Payton' }, { name: 'Gary Payton II' }]).map((p) => p.label);
+  assert.deepEqual(L, ['P. George', 'K. George', 'Gary Payton', 'Gary Payton II']);
+});

@@ -163,6 +163,12 @@ for (const t of T) {
   const adds = Object.keys(ed.add || {}).filter((id) => byId.has(id));
   const pool = ranked.filter((x) => !adds.includes(x.p.id)).slice(0, Math.max(0, t.n - adds.length)).map((x) => x.p);
   for (const id of Object.keys(ed.add || {})) { const p = byId.get(id); if (p && !pool.includes(p)) pool.push(p); }
+  // THE POOL'S ORDER (Jorge, Nov 26, 2026), best first: the order it was
+  // picked in (the template's own score), hand additions placed by that same
+  // score (one the score does not see goes last). It decides which players a
+  // "top 10 / 25 / 50" list ranks; readers still see the pool alphabetically.
+  const sc = new Map(pool.map((p, i) => [p, [t.pick(p), i]]));
+  pool.sort((a, b) => (sc.get(b)[0] > 0 ? sc.get(b)[0] : -1) - (sc.get(a)[0] > 0 ? sc.get(a)[0] : -1) || sc.get(a)[1] - sc.get(b)[1]);
   for (const p of pool) p.nba = await nbaIdOf(p);
   out.push({ t, pool });
 }
@@ -240,11 +246,11 @@ const TEAMS = [['atl', 'Atlanta Hawks', 'atlanta'], ['bos', 'Boston Celtics', 'b
 
 let slots = 0, photo = 0;
 const templates = out.map(({ t, pool }) => {
-  const list = pool.map((p) => {
+  const list = pool.map((p, rank) => {
     const hasPhoto = p.nba && heads[p.nba] === 1;
     slots++; if (hasPhoto) photo++;
-    // [id, name, NBA id with a real photo (else 0), HoopsMatic page, team label]
-    return [p.id, p.name, hasPhoto ? p.nba : 0, p.link || '', teamLabel(p, t.w, t.code)];
+    // [id, name, NBA id with a real photo (else 0), HoopsMatic page, team label, order (1 = best)]
+    return [p.id, p.name, hasPhoto ? p.nba : 0, p.link || '', teamLabel(p, t.w, t.code), rank + 1];
   }).sort((a, b) => last(a[1]).localeCompare(last(b[1])) || a[1].localeCompare(b[1]));
   for (const r of list) if (!r[3]) problems.push(`${t.slug}: ${r[1]} has no HoopsMatic page`);
   return { slug: t.slug, title: t.title, group: t.group, blurb: t.blurb, players: list };
@@ -253,7 +259,7 @@ const sorted = (o) => Object.fromEntries(Object.entries(o).sort(([a], [b]) => (i
 writeFileSync(ROOT + 'data/nba-ids.json', JSON.stringify(sorted(idCache)) + '\n');
 writeFileSync(ROOT + 'data/head-check.json', JSON.stringify(sorted(heads)) + '\n');
 writeFileSync(ROOT + 'public/templates.json', JSON.stringify({
-  _about: 'Tier Lists templates (scripts/build-templates.mjs). players: [id, name, NBA.com person id with a real photo or 0, HoopsMatic page, team as it was]. The tier-lists server checks every published list against this file.',
+  _about: 'Tier Lists templates (scripts/build-templates.mjs). players, shown alphabetically: [id, name, NBA.com person id with a real photo or 0, HoopsMatic page, team as it was, order (1 = best, how the pool was picked; a top 10/25/50 list ranks the first N)]. The tier-lists server checks every published list against this file.',
   v: 1, tiers: ['S', 'A', 'B', 'C', 'D'], templates,
 }) + '\n');
 if (problems.length) { console.error(problems.join('\n')); process.exit(1); }
