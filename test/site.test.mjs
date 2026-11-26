@@ -17,7 +17,7 @@ test('25 templates, fixed S/A/B/C/D tiers, unique slugs', () => {
 
 test('every pool player links to his HoopsMatic page; ids unique per pool', () => {
   for (const t of D.templates) {
-    assert.ok(t.players.length >= 20 && t.players.length <= 30, t.slug + ' pool size');
+    assert.ok(t.players.length >= 20 && t.players.length <= 100, t.slug + ' pool size (up to 100, Nov 26, 2026)');
     assert.equal(new Set(t.players.map((p) => p[0])).size, t.players.length, t.slug + ' duplicates');
     for (const [id, name, nba, link, team] of t.players) {
       assert.match(link, /^https:\/\/hoopsmatic\.com\//, `${t.slug}: ${name} link`);
@@ -90,16 +90,25 @@ test('docs/ stays out of what GitHub Pages publishes (public/ only)', () => {
   assert.ok(!existsSync(ROOT + 'public/docs'));
 });
 
-test('the page: no pop-ups, no initials, a consensus threshold of 25, the share block', () => {
+test('the page: no pop-ups, no initials, a consensus threshold of 10, the in-page share panel', () => {
   const js = read('public/app.js'), css = read('public/style.css');
   assert.ok(!/\balert\(|\bconfirm\(|\bprompt\(|<dialog|showModal/.test(js), 'no pop-ups');
   assert.ok(!/initials/i.test(js.replace(/never initials/gi, '')), 'no initials');
-  assert.match(js, /const NEED = 25;/);
+  assert.match(js, /const NEED = 10;/);
   assert.ok(js.includes('Not enough lists yet'));
   for (const k of ["['x', 'X']", "['bsky', 'Bluesky']", "['fb', 'Facebook']", "['wa', 'WhatsApp']", "['reddit', 'Reddit']", "['telegram', 'Telegram']"]) assert.ok(js.includes(k), k);
-  assert.ok(js.includes("API + 'head/'"), 'share image headshots come through the same origin');
+  // The share image is the server's (headshots through our own proxy), two sizes, saved or shared as a file.
+  assert.ok(js.includes("API + 'image/' + L.id + '.png'"), 'the share image comes from the tier-lists server');
+  assert.ok(js.includes("['1350', '1080 x 1350'], ['1080', '1080 x 1080']"), 'two sizes, 1080x1350 first');
+  assert.ok(js.includes("'Save image'") && js.includes('navigator.canShare({ files: [f] })'), 'Save image, and the file to the share sheet where allowed');
+  assert.ok(!/<canvas|getContext\(/.test(js), 'no canvas drawing in the page');
+  assert.ok(js.includes("el('p', 'intro', C.intro)"), 'the consensus intro');
   assert.ok(!/text-transform:\s*uppercase/.test(css), 'no eyebrow kickers');
   assert.match(css, /--head-bg:#e6e6ea/, 'light-grey headshot background');
+  // The 73-9 game's look: its navy gradient, panels, lines, gold/orange buttons and fonts.
+  for (const k of ['#1a1a3e', '--panel:#12122a', '--line:#2a2a52', '--gold:#ffd700', '--orange:#ff6b35', "font-family: \"Oswald\"", '.soc-wa{background:#25d366}']) assert.ok(css.includes(k), k);
+  assert.ok(!/position:\s*fixed/.test(css.replace(/\.drag-img\{[^}]*\}/, '')), 'no overlays (only the dragged tile follows the finger)');
+  assert.ok(!/carousel|swiper/i.test(js + css), 'no carousels');
 });
 
 test('badges: the publish receipt goes to HMGames.badgeResult once, in the page (no cards, no footer strip)', () => {

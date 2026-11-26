@@ -55,6 +55,8 @@ for (const t of D.templates) {
 // Remove page folders of templates that no longer exist (never fonts/).
 const keep = new Set(D.templates.map((t) => t.slug).concat(['fonts']));
 for (const f of readdirSync(ROOT + 'public')) if (statSync(ROOT + 'public/' + f).isDirectory() && !keep.has(f)) rmSync(ROOT + 'public/' + f, { recursive: true });
+const prevHtml = {};
+for (const path of Object.keys(pages)) { const f = ROOT + 'public/' + path.replace(/^\/tier-lists\//, '') + 'index.html'; if (existsSync(f)) prevHtml[path] = readFileSync(f, 'utf8'); }
 for (const [path, html] of Object.entries(pages)) {
   const dir = ROOT + 'public/' + path.replace(/^\/tier-lists\//, '');
   mkdirSync(dir, { recursive: true });
@@ -63,19 +65,23 @@ for (const [path, html] of Object.entries(pages)) {
 writeFileSync(ROOT + 'public/config.json', JSON.stringify({ launch: L.launch || null, moment: L.moment || null }) + '\n');
 
 // Sitemap state: a URL's lastmod moves only when its page's content changes.
+// Content: the title, description, canonical and the page's own text (the
+// <main> block). The shell around it (fonts, styles, scripts) is not content,
+// so a restyle alone moves nothing.
 const file = ROOT + 'data/sitemap-state.json';
 const old = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')).urls || {} : {};
 const today = new Date().toISOString().slice(0, 10);
+const contentOf = (html) => [/<title>[\s\S]*?<\/title>/, /<meta name="description"[^>]*>/, /<link rel="canonical"[^>]*>/, /<main id="app">[\s\S]*?<\/main>/]
+  .map((re) => (html.match(re) || [''])[0]).join('\n');
 const urls = {};
 let moved = 0;
 for (const [path, html] of Object.entries(pages)) {
-  // The hash leaves out the cache-buster and the shared games script's tag
-  // (badges), so a CSS, JS or script-tag change alone does not move lastmod.
-  const content = html.replace(/\?v=[0-9a-f]{10}/g, '')
-    .replace(/<!-- The shared games script:[^>]*-->\n<script src="\/hoopsmatic-games\.js"[^>]*><\/script>\n/, '');
-  const hash = createHash('sha256').update(content).digest('hex').slice(0, 16);
+  const hash = createHash('sha256').update(contentOf(html)).digest('hex').slice(0, 16);
   const prev = old[path];
-  if (prev && prev.hash === hash) urls[path] = prev; else { urls[path] = { hash, lastmod: today }; moved++; }
+  // The page as published before this build, read before it is replaced.
+  const was = prevHtml[path];
+  const same = prev && (prev.hash === hash || (was != null && contentOf(was) === contentOf(html)));
+  if (same) urls[path] = { hash, lastmod: prev.lastmod }; else { urls[path] = { hash, lastmod: today }; moved++; }
 }
 const state = JSON.stringify({ _about: 'Per-URL content hash and lastmod for hoopsmatic.com/tier-lists/sitemap.xml (scripts/build.mjs). hoopsmatic-worker lists the main page and, from launch, each consensus page with 25+ lists.', urls }) + '\n';
 writeFileSync(file, state);

@@ -13,7 +13,7 @@
   const NBA = 'https://cdn.nba.com/headshots/nba/latest/260x190/';
   const TIERS = ['S', 'A', 'B', 'C', 'D'];
   const TIER_HEX = { S: '#d12c2c', A: '#e07a10', B: '#c29a00', C: '#1d8a40', D: '#3b82f6' };
-  const NEED = 25;   // lists before a consensus is shown (the server says the same)
+  const NEED = 10;   // lists before a consensus is shown (the server says the same; was 25 until Nov 26, 2026)
   const $ = (id) => document.getElementById(id);
   const app = $('app');
   const page = document.body.dataset.page || 'home';
@@ -316,7 +316,7 @@
     const own = mine.includes(L.id);
     const sec = el('section', 'section');
     const sh = el('div', 'section-head'); sh.appendChild(el('h2', null, own ? 'Share your list' : 'Share this list')); sec.appendChild(sh);
-    sec.appendChild(shareBlock(T, L, byId)); app.appendChild(sec);
+    sec.appendChild(shareBlock(T.title, L, SITE + T.slug + '/?l=' + L.id)); app.appendChild(sec);
     const tools = el('div', 'tools');
     const a1 = el('a', 'btn', own ? 'Edit and republish' : 'Make your own list'); a1.href = BASE + T.slug + '/';
     const a2 = el('a', null, "See the fans' consensus"); a2.href = BASE + T.slug + '/consensus/'; a2.style.fontSize = '.85rem';
@@ -336,103 +336,6 @@
     try { if (window.HMGames && typeof window.HMGames.badgeResult === 'function') window.HMGames.badgeResult('tierlists', pend.receipt); } catch (e) { /* badges are extra */ }
   }
 
-  // ---------- the share image (1080x1080) ----------
-  // Headshots come through the tier-lists server (/tier-lists/api/head/<id>),
-  // same origin, so the canvas can be saved (NBA.com sends no CORS headers).
-  function loadImg(src) {
-    return new Promise((res) => {
-      const i = new Image(); let done = false;
-      const fin = (v) => { if (!done) { done = true; res(v); } };
-      i.onload = () => fin(i); i.onerror = () => fin(null); setTimeout(() => fin(null), 8000);
-      i.src = src;
-    });
-  }
-  function fitText(g, text, max, size, weight, family) {
-    let s = size;
-    do { g.font = `${weight} ${s}px ${family}`; if (g.measureText(text).width <= max) break; s -= 1; } while (s > 8);
-    return s;
-  }
-  function wrapLines(g, text, max) {
-    const words = String(text).split(' '); const lines = []; let line = '';
-    for (const w of words) { const t = line ? line + ' ' + w : w; if (g.measureText(t).width > max && line) { lines.push(line); line = w; } else line = t; }
-    if (line) lines.push(line);
-    return lines;
-  }
-  async function shareCanvas(T, L, byId) {
-    const W = 1080, H = 1080, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
-    const g = cv.getContext('2d');
-    try { await Promise.all([document.fonts.load('700 40px "DM Sans"'), document.fonts.load('500 20px "DM Sans"'), document.fonts.load('700 20px "JetBrains Mono"')]); } catch (e) { /* system font */ }
-    const F = '"DM Sans", -apple-system, sans-serif', M = '"JetBrains Mono", monospace';
-    g.fillStyle = '#f5f5f7'; g.fillRect(0, 0, W, H);
-    // Header: the title (up to two lines) and the byline.
-    const X = 48;
-    g.fillStyle = '#1d1d1f'; g.textBaseline = 'alphabetic';
-    let ts = 50; g.font = `700 ${ts}px ${F}`;
-    let lines = wrapLines(g, T.title, W - 2 * X);
-    while (lines.length > 2 && ts > 30) { ts -= 2; g.font = `700 ${ts}px ${F}`; lines = wrapLines(g, T.title, W - 2 * X); }
-    let y = 40 + ts;
-    for (const l of lines.slice(0, 2)) { g.fillText(l, X, y); y += ts * 1.12; }
-    g.fillStyle = '#6e6e73'; g.font = `500 26px ${F}`;
-    g.fillText(L.name ? `${L.name}'s tier list` : 'A fan’s tier list', X, y + 4);
-    const top = y + 30, bottom = H - 92;
-    // Tiles: one size for every tier, the largest that fits all rows.
-    const ids = Object.fromEntries(TIERS.map((t) => [t, (L.tiers[t] || []).filter((x) => byId.has(x))]));
-    const LBL = 84, GAP = 8, PAD = 10, availW = W - 2 * X - LBL - 2 * PAD;
-    let tw = 150, layout;
-    for (; tw >= 44; tw -= 2) {
-      const th = Math.round(tw * 190 / 260) + Math.round(tw * 0.2);
-      const cols = Math.max(1, Math.floor((availW + GAP) / (tw + GAP)));
-      const rows = TIERS.map((t) => Math.max(1, Math.ceil(ids[t].length / cols)));
-      const need = rows.reduce((a, r) => a + r * (th + GAP) - GAP + 2 * PAD, 0) + 4 * 6;
-      if (need <= bottom - top) { layout = { th, cols, rows, need }; break; }
-    }
-    if (!layout) layout = { th: 44, cols: Math.floor((availW + GAP) / (44 + GAP)), rows: TIERS.map(() => 1), need: bottom - top };
-    const extra = (bottom - top - layout.need) / 5;   // spread spare height over the tiers
-    const all = TIERS.flatMap((t) => ids[t]);
-    const imgs = new Map(await Promise.all(all.map(async (id) => { const p = byId.get(id); return [id, p.nba ? await loadImg(API + 'head/' + p.nba) : null]; })));
-    const photoH = Math.round(tw * 190 / 260);
-    let ty = top;
-    TIERS.forEach((t, i) => {
-      const bandH = layout.rows[i] * (layout.th + GAP) - GAP + 2 * PAD + extra;
-      g.fillStyle = '#ffffff'; roundRect(g, X, ty, W - 2 * X, bandH, 14); g.fill();
-      g.fillStyle = TIER_HEX[t]; roundRect(g, X, ty, LBL, bandH, [14, 0, 0, 14]); g.fill();
-      g.fillStyle = '#fff'; g.font = `700 44px ${M}`; g.textAlign = 'center'; g.fillText(t, X + LBL / 2, ty + bandH / 2 + 15); g.textAlign = 'left';
-      ids[t].forEach((id, k) => {
-        const p = byId.get(id), c = k % layout.cols, r = Math.floor(k / layout.cols);
-        const x = X + LBL + PAD + c * (tw + GAP), yy = ty + PAD + r * (layout.th + GAP);
-        const im = imgs.get(id);
-        g.fillStyle = '#e6e6ea'; roundRect(g, x, yy, tw, im ? photoH : layout.th, 8); g.fill();
-        const [fn, ln] = splitName(p.name);
-        if (im) {
-          g.save(); roundRect(g, x, yy, tw, photoH, 8); g.clip();
-          const s = Math.min(tw / im.naturalWidth, photoH / im.naturalHeight), w = im.naturalWidth * s, h = im.naturalHeight * s;
-          g.drawImage(im, x + (tw - w) / 2, yy + photoH - h, w, h); g.restore();
-          g.fillStyle = '#1d1d1f'; g.textAlign = 'center';
-          const fs = fitText(g, ln, tw, Math.max(10, Math.round(tw * 0.15)), 600, F);
-          g.font = `600 ${fs}px ${F}`; g.fillText(ln, x + tw / 2, yy + photoH + fs + 2); g.textAlign = 'left';
-        } else {
-          // Name-only tile: the name inside the frame, the same size as a photo tile.
-          g.textAlign = 'center';
-          const ls = fitText(g, ln, tw - 8, Math.max(10, Math.round(tw * 0.16)), 700, F);
-          const fs = Math.max(9, Math.round(ls * 0.75));
-          g.fillStyle = '#6e6e73'; g.font = `500 ${fs}px ${F}`; if (fn) g.fillText(fitStr(g, fn, tw - 8), x + tw / 2, yy + layout.th / 2 - 2);
-          g.fillStyle = '#1d1d1f'; g.font = `700 ${ls}px ${F}`; g.fillText(ln, x + tw / 2, yy + layout.th / 2 + ls - (fn ? 0 : ls / 2));
-          g.textAlign = 'left';
-        }
-      });
-      ty += bandH + 6;
-    });
-    // Footer: HoopsMatic branding.
-    g.fillStyle = '#1d1d1f'; g.font = `800 34px ${F}`;
-    g.fillText('Hoops', X, H - 40); const hw = g.measureText('Hoops').width;
-    g.fillStyle = '#3b82f6'; g.fillText('Matic', X + hw, H - 40);
-    g.fillStyle = '#6e6e73'; g.font = `500 24px ${F}`; g.textAlign = 'right';
-    g.fillText('hoopsmatic.com/tier-lists', W - X, H - 42); g.textAlign = 'left';
-    return cv;
-  }
-  function fitStr(g, s, max) { if (g.measureText(s).width <= max) return s; while (s.length > 1 && g.measureText(s + '.').width > max) s = s.slice(0, -1); return s + '.'; }
-  function roundRect(g, x, y, w, h, r) { g.beginPath(); if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h); }
-
   // ---------- the 73-9 share block ----------
   // The six icons, copied from Deep Cut's (the 73-9 game's) share block.
   const SOC_ICON = {
@@ -444,11 +347,33 @@
     telegram:'<svg viewBox="0 0 24 24"><path fill="currentColor" d="M11.94 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.06 0zm4.96 7.22c.1 0 .32.02.47.14a.51.51 0 0 1 .17.33c.02.09.04.31.02.47-.18 1.9-.96 6.5-1.36 8.63-.17.9-.5 1.2-.82 1.23-.7.06-1.23-.46-1.9-.9-1.06-.7-1.65-1.12-2.68-1.8-1.19-.78-.42-1.21.26-1.91.18-.18 3.25-2.98 3.31-3.23 0-.03.01-.15-.06-.21-.07-.06-.17-.04-.25-.02-.1.02-1.79 1.14-5.06 3.34-.48.33-.91.49-1.3.48-.43 0-1.25-.24-1.86-.44-.75-.24-1.35-.37-1.3-.79.03-.21.33-.43.89-.66 3.5-1.52 5.83-2.53 7-3.01 3.33-1.39 4.02-1.63 4.48-1.63z"/></svg>'
   };
   const SOC = [['x', 'X'], ['bsky', 'Bluesky'], ['fb', 'Facebook'], ['wa', 'WhatsApp'], ['reddit', 'Reddit'], ['telegram', 'Telegram']];
-  function shareBlock(T, L, byId) {
-    const url = SITE + T.slug + '/?l=' + L.id;
-    const text = `${L.name ? L.name + "'s" : 'My'} ${T.title} tier list on HoopsMatic`;
+  // The share panel, in the page under a published list (never a pop-up).
+  // The picture is drawn by the tier-lists server (/tier-lists/api/image/
+  // <id>.png, headshots through our own proxy): 1080x1350 by default or
+  // 1080x1080. The same file is the list link's preview. "Save image"
+  // downloads it; on a phone, "Share image" hands the file itself to the
+  // share sheet where the browser allows files, else the link.
+  function shareBlock(title, L, url) {
+    const text = `${L.name ? L.name + "'s" : 'My'} ${title} tier list on HoopsMatic`;
     const box = el('div', 'share-box');
-    const img = el('img', 'share-img'); img.alt = `${T.title} tier list: the S to D tiers with headshots`; box.appendChild(img);
+    let size = '1350';
+    const sizes = el('div', 'share-sizes'); sizes.setAttribute('role', 'group'); sizes.setAttribute('aria-label', 'Image size');
+    const szBtn = {};
+    for (const [k, lab] of [['1350', '1080 x 1350'], ['1080', '1080 x 1080']]) {
+      const b = el('button', null, lab); b.type = 'button'; b.setAttribute('aria-pressed', String(k === size)); szBtn[k] = b;
+      b.addEventListener('click', () => { size = k; for (const x in szBtn) szBtn[x].setAttribute('aria-pressed', String(x === k)); show(); });
+      sizes.appendChild(b);
+    }
+    box.appendChild(sizes);
+    const img = el('img', 'share-img'); img.alt = `${title} tier list: the S to D tiers`; img.width = 1080; img.height = 1350; img.decoding = 'async';
+    box.appendChild(img);
+    const imgUrl = () => API + 'image/' + L.id + '.png' + (size === '1080' ? '?size=1080' : '');
+    function show() { img.classList.toggle('sq', size === '1080'); img.height = size === '1080' ? 1080 : 1350; img.src = imgUrl(); }
+    show();
+    const btns = el('div', 'share-btns');
+    const save = el('button', 'btn', 'Save image'); save.type = 'button';
+    const share = el('button', 'btn ghost', 'Share image'); share.type = 'button';
+    btns.append(save, share); box.appendChild(btns);
     const link = el('div', 'share-link');
     const inp = el('input', 'share-url'); inp.readOnly = true; inp.value = url; inp.setAttribute('aria-label', 'Share link');
     const copy = el('button', 'share-copybtn', 'Copy'); copy.type = 'button';
@@ -464,20 +389,31 @@
       soc.appendChild(b);
     }
     box.appendChild(soc);
-    const btns = el('div', 'share-btns');
-    const dl = el('button', 'btn', 'Download'); dl.type = 'button';
-    const cimg = el('button', 'btn ghost', 'Copy image'); cimg.type = 'button';
-    btns.append(dl, cimg); box.appendChild(btns);
     const msg = el('div', 'share-msg'); msg.setAttribute('aria-live', 'polite'); box.appendChild(msg);
-    let blob = null;
-    shareCanvas(T, L, byId).then((cv) => {
-      try { img.src = cv.toDataURL('image/png'); cv.toBlob((b) => { blob = b; }, 'image/png'); } catch (e) { img.classList.add('hide'); }
+    const fileName = () => (title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'tier-list') + '-' + (size === '1080' ? 'square' : 'tall') + '.png';
+    async function file() {
+      const r = await fetch(imgUrl());
+      if (!r.ok) throw new Error('image');
+      return new File([await r.blob()], fileName(), { type: 'image/png' });
+    }
+    save.addEventListener('click', async () => {
+      msg.textContent = 'Getting the image...';
+      try {
+        const f = await file(); const a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = f.name;
+        document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+        msg.textContent = 'Image saved.';
+      } catch (e) { msg.textContent = "The image couldn't be saved. Try again in a moment."; }
     });
-    if (!(navigator.clipboard && window.ClipboardItem)) cimg.classList.add('hide');
+    share.addEventListener('click', async () => {
+      try {
+        const f = await file();
+        if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title: text, text: text + ' ' + url }); msg.textContent = ''; return; }
+        if (navigator.share) { await navigator.share({ title: text, text, url }); return; }
+        await navigator.clipboard.writeText(text + ' ' + url); msg.textContent = 'This browser cannot share files: the link is copied instead.';
+      } catch (e) { if (!e || e.name !== 'AbortError') msg.textContent = 'Sharing is blocked here. Use Save image or the buttons below.'; }
+    });
     inp.addEventListener('click', () => inp.select());
     copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(text + '\n' + url); msg.textContent = 'Text + link copied.'; } catch (e) { msg.textContent = 'Copy blocked here.'; } });
-    dl.addEventListener('click', () => { if (!img.src) return; const a = document.createElement('a'); a.href = img.src; a.download = T.slug + '-tier-list.png'; document.body.appendChild(a); a.click(); a.remove(); msg.textContent = 'Saved to your downloads.'; });
-    cimg.addEventListener('click', async () => { try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]); msg.textContent = 'Image copied.'; } catch (e) { msg.textContent = 'Copy blocked here. Use Download.'; } });
     return box;
   }
 
@@ -502,6 +438,8 @@
       app.appendChild(m); return;
     }
     sub.textContent = `The average of ${C.lists.toLocaleString('en-US')} published lists: S = 5 points, A = 4, B = 3, C = 2, D = 1. ${T.blurb}`;
+    // The written intro (built by the server from the votes; the page's HTML carries it too).
+    if (C.intro) app.insertBefore(el('p', 'intro', C.intro), sub);
     const byId = new Map(T.players.map((r) => [r[0], P(r)]));
     const { b, zones } = board();
     for (const t of TIERS) {

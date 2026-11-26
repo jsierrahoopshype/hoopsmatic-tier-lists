@@ -78,7 +78,13 @@ const ALL = [1947, NOW];
 
 const T = [];
 // blurb: the one line under the title (what the pool is; no ranking hints).
-const add = (slug, title, group, n, pick, w, blurb, code = null) => T.push({ slug, title, group, n, pick, w, blurb, code });
+// POOL SIZE (Jorge, Nov 26, 2026): up to 100 players, where the data has
+// that many (a template's own filter decides who qualifies: the rookie and
+// draft-class pools stay smaller). The n each line below was built with
+// (20 to 30) is kept as the floor the old pools had; every pool is the same
+// for everyone who ranks it (templates.json, checked by the server).
+const POOL_MAX = 100;
+const add = (slug, title, group, n, pick, w, blurb, code = null) => T.push({ slug, title, group, n: POOL_MAX, pick, w, blurb, code });
 add('2026-27-mvp-race', '2026-27 MVP race', 'This season', 20, (p) => gpIn(p, NOW) >= 5 ? 2 * (per(p, NOW, 'pts') + per(p, NOW, 'reb') + per(p, NOW, 'ast')) + windowScore(p, [2025, 2026]) * 1.5 : -1, [NOW, NOW], 'The 2026-27 season so far. Teams as of this season.');
 add('2026-27-rookie-of-the-year-race', '2026-27 Rookie of the Year race', 'This season', 20, (p) => p.firstYear === NOW && gpIn(p, NOW) >= 3 ? per(p, NOW, 'pts') + per(p, NOW, 'reb') + per(p, NOW, 'ast') + (p.pick && p.pick <= 10 ? 4 : 0) : -1, [NOW, NOW], 'First-year players in 2026-27.');
 add('best-players-right-now', 'Best players in the NBA right now', 'This season', 30, (p) => gpIn(p, NOW) >= 3 || p.lastYear >= 2026 ? windowScore(p, [2024, 2026]) + (gpIn(p, NOW) ? per(p, NOW, 'pts') / 2 : 0) : -1, [2025, NOW], 'Active players, 2026-27.');
@@ -151,7 +157,8 @@ for (const t of T) {
   const ed = EDITS[t.slug] || {};
   const removed = new Set(Object.keys(ed.remove || {}));
   for (const id of [...removed, ...Object.keys(ed.add || {})]) if (!byId.has(id)) problems.push(`${t.slug}: unknown player id ${id} in rules/edits.json`);
-  const ranked = players.map((p) => ({ p, s: t.pick(p) })).filter((x) => x.s > 0 && !removed.has(x.p.id)).sort((a, b) => b.s - a.s);
+  // Only players with a HoopsMatic page (every tile links to one).
+  const ranked = players.map((p) => ({ p, s: t.pick(p) })).filter((x) => x.s > 0 && x.p.link && !removed.has(x.p.id)).sort((a, b) => b.s - a.s);
   // Hand additions take seats from the data's bottom, so a pool keeps its size.
   const adds = Object.keys(ed.add || {}).filter((id) => byId.has(id));
   const pool = ranked.filter((x) => !adds.includes(x.p.id)).slice(0, Math.max(0, t.n - adds.length)).map((x) => x.p);
