@@ -199,7 +199,7 @@ export function buildPlayers() {
     const min = +r.MIN > 0 ? +r.MIN : gp * 20;
     // reb is 0 before 1950-51 (not kept then); stat prompts only use rebounds from then on.
     p.seasons.push({ y, code: r.TEAM, unit, gp, min, pts: +r.PTS || 0, reb: +r.REB || 0, ast: +r.AST || 0,
-      stl: +r.STL || 0, blk: +r.BLK || 0, tpm: +r['3P'] || 0 });
+      stl: +r.STL || 0, blk: +r.BLK || 0, tpm: +r['3P'] || 0, tpa: +r['3PA'] || 0 });
     p.units.add(unit);
     p.gp += gp; p.min += min;
     p.firstYear = p.firstYear ? Math.min(p.firstYear, y) : y;

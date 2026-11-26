@@ -73,6 +73,27 @@ function teamLabel(p, w, code) {
   const top = [...m].sort((a, b) => b[1] - a[1])[0];
   return top ? unitName(top[0]) : '';
 }
+// This season's team records (the Real Standings repo, pinned in
+// data/sources.lock.json as "standings"): each team's latest W-L.
+const STAND = src('standings');
+const REC = (() => { const d = STAND.dates[STAND.dates.length - 1]; return Object.fromEntries(STAND.order.map((c, i) => [c, STAND.snapshots[d][i]])); })();
+const winPct = (code) => { const r = REC[code]; return r && r[0] + r[1] ? r[0] / (r[0] + r[1]) : 0.5; };
+const teamNow = (p) => { const s = p.seasons.filter((x) => x.y === NOW); return s.length ? s[s.length - 1].code : null; };
+// THREE-POINT SHOOTERS (Jorge, Nov 26, 2026): makes and accuracy together.
+// Career threes made, weighted by how far the career 3P% is above the league
+// average of the seasons he shot them in (each season's league 3P%, weighted
+// by his attempts that season): makes x (1 + 10 x the gap). 42% where the
+// league shot 36% counts each make 1.6 times; a below-average shooter's
+// makes count for less.
+const LG3 = new Map();
+for (const p of players) for (const s of p.seasons) { const x = LG3.get(s.y) || [0, 0]; x[0] += s.tpm || 0; x[1] += s.tpa || 0; LG3.set(s.y, x); }
+function threeScore(p) {
+  const m = p.seasons.reduce((a, s) => a + (s.tpm || 0), 0), att = p.seasons.reduce((a, s) => a + (s.tpa || 0), 0);
+  if (!m || !att) return 0;
+  const exp = p.seasons.reduce((a, s) => { const l = LG3.get(s.y); return a + (s.tpa || 0) * (l && l[1] ? l[0] / l[1] : 0); }, 0) / att;
+  return m * Math.max(0, 1 + 10 * (m / att - exp));
+}
+const threeMade = (p) => p.seasons.reduce((a, s) => a + (s.tpm || 0), 0);
 const isPG = (p) => isG(p) && !/F/.test(p.pos) && careerPer(p, 'ast') >= 5.5;   // guard (not G-F), 5.5+ career assists
 const ALL = [1947, NOW];
 
@@ -85,7 +106,9 @@ const T = [];
 // for everyone who ranks it (templates.json, checked by the server).
 const POOL_MAX = 100;
 const add = (slug, title, group, n, pick, w, blurb, code = null) => T.push({ slug, title, group, n: POOL_MAX, pick, w, blurb, code });
-add('2026-27-mvp-race', '2026-27 MVP race', 'This season', 20, (p) => gpIn(p, NOW) >= 5 ? 2 * (per(p, NOW, 'pts') + per(p, NOW, 'reb') + per(p, NOW, 'ast')) + windowScore(p, [2025, 2026]) * 1.5 : -1, [NOW, NOW], 'The 2026-27 season so far. Teams as of this season.');
+// MVP race (Jorge, Nov 26, 2026): times (0.5 + his team's win percentage this
+// season), so a .750 team counts 1.25 and a .250 team 0.75.
+add('2026-27-mvp-race', '2026-27 MVP race', 'This season', 20, (p) => gpIn(p, NOW) >= 5 ? (2 * (per(p, NOW, 'pts') + per(p, NOW, 'reb') + per(p, NOW, 'ast')) + windowScore(p, [2025, 2026]) * 1.5) * (0.5 + winPct(teamNow(p))) : -1, [NOW, NOW], 'The 2026-27 season so far. Teams as of this season.');
 add('2026-27-rookie-of-the-year-race', '2026-27 Rookie of the Year race', 'This season', 20, (p) => p.firstYear === NOW && gpIn(p, NOW) >= 3 ? per(p, NOW, 'pts') + per(p, NOW, 'reb') + per(p, NOW, 'ast') + (p.pick && p.pick <= 10 ? 4 : 0) : -1, [NOW, NOW], 'First-year players in 2026-27.');
 add('best-players-right-now', 'Best players in the NBA right now', 'This season', 30, (p) => gpIn(p, NOW) >= 3 || p.lastYear >= 2026 ? windowScore(p, [2024, 2026]) + (gpIn(p, NOW) ? per(p, NOW, 'pts') / 2 : 0) : -1, [2025, NOW], 'Active players, 2026-27.');
 add('best-young-players', 'Best players 23 and under', 'This season', 24, (p) => gpIn(p, NOW) >= 3 && age(p, NOW) < 24 ? windowScore(p, [2025, 2026]) + per(p, NOW, 'pts') + per(p, NOW, 'reb') / 2 + per(p, NOW, 'ast') / 2 + (p.pick && p.pick <= 3 ? 3 : 0) : -1, [NOW, NOW], 'Players 23 or younger on Feb. 1, 2027.');
@@ -98,7 +121,9 @@ add('best-centers-of-the-1990s', 'Best centers of the 1990s', 'By decade', 20, (
 add('best-forwards-of-the-2000s', 'Best forwards of the 2000s', 'By decade', 24, (p) => isF(p) ? windowScore(p, dec(2000)) : -1, dec(2000), 'Seasons 2000-01 to 2009-10. Teams as they were then.');
 add('best-point-guards-of-all-time', 'Best point guards of all time', 'All-time', 25, (p) => isPG(p) ? windowScore(p, ALL) : -1, ALL, 'Whole careers. Each player under the team he played the most games for.');
 add('best-centers-of-all-time', 'Best centers of all time', 'All-time', 25, (p) => isC(p) ? windowScore(p, ALL) : -1, ALL, 'Whole careers. Each player under the team he played the most games for.');
-add('best-three-point-shooters-of-all-time', 'Best three-point shooters of all time', 'All-time', 24, (p) => { const t = p.seasons.reduce((a, s) => a + (s.tpm || 0), 0); return t >= 1000 ? t : -1; }, ALL, 'Whole careers. Each player under the team he played the most games for.');
+add('best-three-point-shooters-of-all-time', 'Best three-point shooters of all time', 'All-time', 24, (p) => (threeMade(p) >= 1000 ? threeScore(p) : -1), ALL, 'Whole careers. Each player under the team he played the most games for.');
+// Its order for hand additions under the 1,000-make floor (Steve Kerr) is the same score.
+T[T.length - 1].rankBy = threeScore;
 add('best-defenders-of-all-time', 'Best defenders of all time', 'All-time', 24, (p) => p.allDefense.length + p.dpoy.length >= 4 ? 2 * p.allDefense.length + 5 * p.dpoy.length : -1, ALL, 'Whole careers. Each player under the team he played the most games for.');
 add('best-international-players-of-all-time', 'Best international players of all time', 'All-time', 25, (p) => p.bornIn && p.bornIn !== 'United States' ? windowScore(p, ALL) : -1, ALL, 'Players born outside the U.S. Whole careers.');
 for (const [code, nick, city] of [['BOS', 'Celtics', 'Boston'], ['LAL', 'Lakers', 'Minneapolis and Los Angeles'], ['CHI', 'Bulls', 'Chicago'], ['GSW', 'Warriors', 'Philadelphia, San Francisco and Golden State'], ['NYK', 'Knicks', 'New York'], ['SAS', 'Spurs', 'San Antonio'], ['MIA', 'Heat', 'Miami'], ['DAL', 'Mavericks', 'Dallas']])
@@ -151,6 +176,7 @@ async function checkHeads(ids) {
 
 // ---------- build ----------
 const EDITS = readJson('rules/edits.json', { templates: {} }).templates;
+const PINS = readJson('rules/pins.json', { templates: {} }).templates;
 const last = (n) => n.replace(/ (Jr\.|Sr\.|II|III|IV)$/, '').split(' ').slice(1).join(' ') || n;
 const out = [], problems = [];
 for (const t of T) {
@@ -167,8 +193,31 @@ for (const t of T) {
   // picked in (the template's own score), hand additions placed by that same
   // score (one the score does not see goes last). It decides which players a
   // "top 10 / 25 / 50" list ranks; readers still see the pool alphabetically.
-  const sc = new Map(pool.map((p, i) => [p, [t.pick(p), i]]));
+  const by = t.rankBy || t.pick;
+  const sc = new Map(pool.map((p, i) => [p, [by(p), i]]));
   pool.sort((a, b) => (sc.get(b)[0] > 0 ? sc.get(b)[0] : -1) - (sc.get(a)[0] > 0 ? sc.get(a)[0] : -1) || sc.get(a)[1] - sc.get(b)[1]);
+  // PINS (Jorge, Nov 26, 2026): every approved hand addition sits inside the
+  // Top 25 (the default size), so a Top 25 list always has it. One the score
+  // already puts there keeps its place; one it puts lower goes to the place
+  // rules/pins.json gives it (where a fan would expect him), or 25 if none.
+  // rules/pins.json can also pin a player the data undersells (ABA years).
+  const pins = PINS[t.slug] || {};
+  const pinIds = new Set([...Object.keys(ed.add || {}), ...Object.keys(pins)]);
+  // Repeated until none is below 25 (moving one up can push another down).
+  for (let guard = 0; guard < 6; guard++) {
+    const late = pool.filter((p, i) => pinIds.has(p.id) && i >= 25);
+    if (!late.length) break;
+    // Each its own slot: a pins.json place (1 to 25), else the free slots
+    // from 25 upward; then placed from the top down so none moves another.
+    const rest = pool.filter((p) => !late.includes(p)), slot = new Map(), taken = new Set();
+    // Slots already held by pinned players above stay theirs.
+    pool.forEach((p, i) => { if (pinIds.has(p.id) && i < 25 && !late.includes(p)) taken.add(i + 1); });
+    for (const p of late) if (pins[p.id] >= 1 && pins[p.id] <= 25 && !taken.has(pins[p.id])) { slot.set(p, pins[p.id]); taken.add(pins[p.id]); }
+    let free = 25;
+    for (const p of late) if (!slot.has(p)) { while (taken.has(free)) free--; slot.set(p, free); taken.add(free); }
+    for (const p of late.sort((a, b) => slot.get(a) - slot.get(b))) rest.splice(Math.min(slot.get(p), rest.length + 1) - 1, 0, p);
+    pool.splice(0, pool.length, ...rest);
+  }
   for (const p of pool) p.nba = await nbaIdOf(p);
   out.push({ t, pool });
 }

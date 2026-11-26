@@ -1,5 +1,5 @@
 {
- "_about": "Every data file Deep Cut prompts are built from, pinned by commit and sha256. Same pins as the NBA Crossword (hoopsmatic-crossword data/sources.lock.json) on Nov 11, 2026. node scripts/pull-data.mjs downloads exactly these into .cache/sources/.",
+ "_about": "Every data file Deep Cut prompts are built from, pinned by commit and sha256. Same pins as the NBA Crossword (hoopsmatic-crossword data/sources.lock.json) on Nov 11, 2026. node scripts/pull-data.mjs downloads exactly these into .cache/sources/. Tier Lists adds standings (the Real Standings repo: this season's team records, for the MVP race pool).",
  "sources": [
   {
    "id": "bio",
@@ -99,6 +99,15 @@
    "sha256": "4b460b0503af3caa21c017cbe6b405b55bd9fe9c160681d2781ccb3fc2094599",
    "bytes": 330681,
    "rows": 3437
+  },
+  {
+   "id": "standings",
+   "repo": "jsierrahoopshype/nba-alt-standings",
+   "path": "data/nights.json",
+   "commit": "7b2a9ca7c735a7259a9fbce8ec85097b580bdd73",
+   "sha256": "7ad48018efde2b73c004b444c657683a84ec7a6304b7780c9af749b1912e72b8",
+   "bytes": 45774,
+   "rows": 5
   }
  ],
  "births": {
