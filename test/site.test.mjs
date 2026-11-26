@@ -67,9 +67,27 @@ test('a page per template and per consensus, canonical on hoopsmatic.com, footer
   }
 });
 
-test('launch: no date yet', () => {
-  assert.equal(JSON.parse(read('rules/launch.json')).launch, null);
-  assert.equal(JSON.parse(read('public/config.json')).launch, null);
+// Launch (Jorge, Nov 26, 2026): Sunday, Nov 30, 2026, 15:00 Madrid = 9:00 AM ET,
+// the same moment as hoopsmatic-worker's TIER_LISTS_LAUNCH.
+test('launch: Nov 30, 2026, 15:00 Madrid (9:00 AM ET)', () => {
+  const L = JSON.parse(read('rules/launch.json')), C = JSON.parse(read('public/config.json'));
+  assert.equal(L.launch, '2026-11-30');
+  assert.equal(L.moment, '2026-11-30T14:00:00Z');
+  assert.deepEqual(C, { launch: L.launch, moment: L.moment });
+  const at = (tz) => new Intl.DateTimeFormat('en-GB', { timeZone: tz, dateStyle: 'short', timeStyle: 'short' }).format(new Date(L.moment));
+  assert.equal(at('Europe/Madrid'), '30/11/2026, 15:00');
+  assert.equal(at('America/New_York'), '30/11/2026, 09:00');
+});
+
+test('international pool: no player born abroad who plays for the U.S. (Boozer, Wilkins, Irving); Duncan stays', () => {
+  const ids = D.templates.find((t) => t.slug === 'best-international-players-of-all-time').players.map((p) => p[0]);
+  for (const id of ['carlos-boozer', 'dominique-wilkins', 'kyrie-irving']) assert.ok(!ids.includes(id), id);
+  assert.ok(ids.includes('tim-duncan'));
+});
+
+test('docs/ stays out of what GitHub Pages publishes (public/ only)', () => {
+  assert.match(read('.github/workflows/pages.yml'), /path: public\n/);
+  assert.ok(!existsSync(ROOT + 'public/docs'));
 });
 
 test('the page: no pop-ups, no initials, a consensus threshold of 25, the share block', () => {
@@ -82,4 +100,13 @@ test('the page: no pop-ups, no initials, a consensus threshold of 25, the share 
   assert.ok(js.includes("API + 'head/'"), 'share image headshots come through the same origin');
   assert.ok(!/text-transform:\s*uppercase/.test(css), 'no eyebrow kickers');
   assert.match(css, /--head-bg:#e6e6ea/, 'light-grey headshot background');
+});
+
+test('badges: the publish receipt goes to HMGames.badgeResult once, in the page (no cards, no footer strip)', () => {
+  const js = read('public/app.js'), h = read('public/index.html');
+  assert.ok(js.includes("store.set('tl-badge', { id: r.id, receipt: r.badge })"));
+  assert.ok(js.includes("window.HMGames.badgeResult('tierlists', pend.receipt)"));
+  assert.ok(js.includes("host.id = 'games-promo'"));
+  assert.match(h, /<script src="\/hoopsmatic-games\.js" data-hm-game="tierlists" defer><\/script>/);
+  assert.ok(!/data-hm-(cards|footer)=/.test(h), 'no auto cards (no carousel), no footer strip');
 });

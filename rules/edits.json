@@ -1,5 +1,5 @@
 {
- "_about": "Hand edits to the data-built pools (scripts/build-templates.mjs): per template, players to add and to remove, each with a one-line reason. Jorge approves this list before launch (docs/edits-for-approval.txt is the plain-text copy).",
+ "_about": "Hand edits to the data-built pools (scripts/build-templates.mjs): per template, players to add and to remove, each with a one-line reason. Jorge approved every edit on Nov 26, 2026, plus Kyrie Irving out of the international pool (docs/edits-for-approval.txt is the plain-text copy).",
  "templates": {
   "best-point-guards-of-the-2010s": {
    "add": {
@@ -92,7 +92,8 @@
    },
    "remove": {
     "carlos-boozer": "Born on a U.S. military base in Germany; raised in Alaska.",
-    "dominique-wilkins": "Born in Paris to a U.S. military family; raised in the U.S."
+    "dominique-wilkins": "Born in Paris to a U.S. military family; raised in the U.S.",
+   "kyrie-irving": "Born in Australia to American parents; raised in the U.S. and plays for the U.S."
    }
   },
   "heat-all-time": {

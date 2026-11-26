@@ -14,6 +14,8 @@ node scripts/build.mjs              # the pages
 node --test test/*.test.mjs
 ```
 
-Launch: no date yet. Set `launch` in `rules/launch.json` and `TIER_LISTS_LAUNCH` in hoopsmatic-worker on the same day; indexing, sitemap and menu switch on by themselves at 9:00 AM ET. Before that every page is noindex. Individual lists are always noindex; a consensus page is indexable only with 25+ lists.
+Launch: Sunday, Nov 30, 2026, 15:00 Madrid = 9:00 AM ET (`rules/launch.json`, hoopsmatic-worker `TIER_LISTS_LAUNCH`, tier-lists-server `LAUNCH`). Indexing, the sitemap, the menu row, the games roster entry and the privacy paragraph switch on by themselves at that moment, and the consensus starts from zero (lists published before it stop counting and are deleted). Before that every page is noindex. Ranking pages and individual lists are always noindex; a consensus page is indexable only with 25+ lists.
+
+Badges: game id `tierlists` in hoopsmatic-badges. From launch each publish reply carries a sealed receipt; the list's page passes it to `/hoopsmatic-games.js` (`HMGames.badgeResult`), which shows the badge card in the page.
 
 Privacy text for stored lists: `docs/privacy-draft.md`.

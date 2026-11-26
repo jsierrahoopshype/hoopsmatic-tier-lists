@@ -1,4 +1,5 @@
 {
- "_about": "NBA Tier Lists' public launch moment (Jorge: no date yet). null = not launched: every page is noindex and Tier Lists is not in the menu, the games/tools roster or a sitemap. To launch, set the same day here and in hoopsmatic-worker (TIER_LISTS_LAUNCH in src/index.js); everything switches on by itself at 9:00 AM ET that day. scripts/build.mjs copies it to public/config.json.",
- "launch": null
+ "_about": "NBA Tier Lists' public launch (Jorge, Nov 26, 2026): Sunday, November 30, 2026, 15:00 Madrid = 9:00 AM ET. Everything switches on by itself at that moment, from the clock, with nothing flipped by hand: hoopsmatic-worker TIER_LISTS_LAUNCH (indexing of the main page and consensus pages with 25+ lists, the sitemap and its robots.txt line, the menu row, the games roster), tier-lists-server LAUNCH (the consensus from zero, badge receipts) and the privacy paragraph in hoopsmatic-accounts. scripts/build.mjs copies it to public/config.json.",
+ "launch": "2026-11-30",
+ "moment": "2026-11-30T14:00:00Z"
 }
