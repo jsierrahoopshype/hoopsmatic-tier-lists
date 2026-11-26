@@ -155,7 +155,10 @@
     if (opts.link) { if (p.link) t.href = p.link; t.title = p.name + (p.team ? ', ' + p.team : ''); }
     else { t.type = 'button'; t.dataset.id = p.id; t.setAttribute('aria-label', p.name + (p.team ? ', ' + p.team : '')); }
     t.appendChild(frame(p));
-    t.appendChild(el('span', 'nm', p.label || (p.text ? p.name : p.logo ? p.name.split(' ').slice(-1)[0] : lastName(p.name))));
+    // A long hyphenated name may break after its hyphen (Gilgeous-<wbr>Alexander).
+    const nmText = p.label || (p.text ? p.name : p.logo ? p.name.split(' ').slice(-1)[0] : lastName(p.name));
+    const nm = el('span', 'nm'); String(nmText).split('-').forEach((part, i, arr) => { nm.append(part + (i < arr.length - 1 ? '-' : '')); if (i < arr.length - 1) nm.appendChild(document.createElement('wbr')); });
+    t.appendChild(nm);
     if (opts.avg != null) t.appendChild(el('span', 'avg', String(Math.round(opts.avg))));
     return t;
   }
@@ -186,111 +189,182 @@
   }
   const fmtDate = (ms) => new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-  // ================= the template list =================
+  // ================= the homepage =================
+  // HOMEPAGE (Jorge, Nov 26, 2026): one featured debate first (public/hero.json
+  // from rules/hero.json): the question big, one headshot on light grey, the
+  // board's own tiers as big buttons. A tap places him, saves the draft and
+  // opens the board with that pick in place. With a draft already started on
+  // that board: "Resume your list" instead, never overwritten. Then three
+  // featured boards, then the catalog by group, compact (no headshot strips).
+  const draftOf = (slug) => { const d = store.get('tl-rank-' + slug); return d && d.place && Object.keys(d.place).length ? d : null; };
+  const tiersFor = (T) => (Array.isArray(T.tiers) && T.tiers.length >= TIER_MIN ? T.tiers : TIERS);
+  const QUICK = 10;
   async function home() {
     await loadTemplates();
+    let H = {};
+    try { H = await (await fetch(BASE + 'hero.json', { cache: 'no-cache' })).json(); } catch (e) { /* the catalog still shows */ }
     app.textContent = '';
-    app.appendChild(el('h1', null, 'NBA Tier Lists'));
-    app.appendChild(el('p', 'subtitle', 'Rank NBA players in S, A, B, C and D tiers, publish your list and see where the fans land.'));
-    if (customOpen(await loadConfig())) {
-      const c = el('div', 'msg make-cta');
-      c.appendChild(el('b', null, 'Make your own tier list'));
-      c.append('Pick your own title and 3 to 100 items: NBA players, teams or anything you type. Then rank them and share it.');
-      c.appendChild(el('br'));
-      const a = el('a', 'btn', 'Start a list'); a.href = BASE + 'make/'; c.appendChild(a);
-      app.appendChild(c);
-    }
     let counts = {};
     try { counts = (await api('counts')).counts || {}; } catch (e) { /* counts are a nicety */ }
-    const groups = [];
-    for (const t of DATA.templates) { let g = groups.find((x) => x.name === t.group); if (!g) groups.push(g = { name: t.group, list: [] }); g.list.push(t); }
-    for (const g of groups) {
-      const sec = el('section', 'group');
-      sec.appendChild(el('h2', null, g.name));
-      const cards = el('div', 'cards');
-      for (const t of g.list) {
-        const c = el('article', 'card');
-        const h = el('h3'); const a = el('a', null, t.title); a.href = BASE + t.slug + '/'; h.appendChild(a); c.appendChild(h);
-        // Six faces with real photos, in pool order (alphabetical: no ranking hint).
-        const faces = el('div', 'faces');
-        for (const r of t.players.filter((r) => r[2]).slice(0, 6)) faces.appendChild(frame(P(r)));
-        c.appendChild(faces);
-        const meta = el('div', 'meta');
-        const n = counts[t.slug] || 0;
-        meta.appendChild(el('span', null, `${t.players.length} players · ${n} ${n === 1 ? 'list' : 'lists'}`));
-        const links = el('span', 'links');
-        const r1 = el('a', null, 'Rank them'); r1.href = BASE + t.slug + '/';
-        const r2 = el('a', null, 'Consensus'); r2.href = BASE + t.slug + '/consensus/';
-        links.append(r1, r2); meta.appendChild(links);
-        c.appendChild(meta); cards.appendChild(c);
+    // The featured debate.
+    const hero = H.hero && templateOf(H.hero.board);
+    const hp = hero && hero.players.find((r) => r[0] === H.hero.player);
+    if (hero && hp) {
+      const sec = el('section', 'hero');
+      const p = P(hp);
+      const d = draftOf(hero.slug);
+      const pic = el('a', 'hero-pic'); pic.href = p.link; pic.appendChild(frame(p)); pic.appendChild(el('span', 'hero-name', p.name));
+      const body = el('div', 'hero-body');
+      body.appendChild(el('h1', 'hero-q', H.hero.question));
+      if (d) {
+        const n = Object.keys(d.place).length, size = d.size || QUICK;
+        body.appendChild(el('p', 'subtitle', `You have a ${hero.title} list in progress.`));
+        const a = el('a', 'btn big', `Resume your list (${n} of ${size} placed)`); a.href = BASE + hero.slug + '/'; body.appendChild(a);
+      } else {
+        body.appendChild(el('p', 'subtitle', `Pick his tier and the rest of the ${hero.title} board opens with him in place.`));
+        const row = el('div', 'hero-choices');
+        const names = tiersFor(hero), colors = tierColors(names.length);
+        names.forEach((n, i) => {
+          const b = el('button', 'choice', n); b.type = 'button'; b.style.setProperty('--c', colors[i]);
+          b.addEventListener('click', () => {
+            // Never overwrite a draft (one could have been saved in another tab).
+            if (!draftOf(hero.slug)) store.set('tl-rank-' + hero.slug, { size: QUICK, tiers: names.map((x) => ({ name: x })), place: { [p.id]: i }, from: 'hero' });
+            location.href = BASE + hero.slug + '/';
+          });
+          row.appendChild(b);
+        });
+        body.appendChild(row);
       }
-      sec.appendChild(cards); app.appendChild(sec);
+      sec.append(pic, body); app.appendChild(sec);
+    } else app.appendChild(el('h1', null, 'NBA Tier Lists'));
+    // Create your own: always there, second to the boards.
+    if (customOpen(await loadConfig())) {
+      const mk = el('div', 'make-row');
+      mk.append('Have your own debate? ');
+      const a = el('a', 'btn ghost small', 'Create your own'); a.href = BASE + 'make/'; mk.appendChild(a);
+      app.appendChild(mk);
+    }
+    // Three featured debates, each in its own look.
+    const feat = (H.featured || []).map((f) => ({ f, T: templateOf(f.slug) })).filter((x) => x.T);
+    if (feat.length) {
+      const fs = el('section', 'featured');
+      for (const { f, T } of feat) {
+        const c = el('article', 'feat feat-' + f.look);
+        const top = T.players.slice().sort((a, b) => a[5] - b[5]).find((r) => r[2]);
+        if (top) { const fr = el('div', 'feat-pic'); fr.appendChild(frame(P(top))); c.appendChild(fr); }
+        const w = el('div', 'feat-body');
+        w.appendChild(el('h2', null, T.title));
+        w.appendChild(el('p', null, f.line));
+        const m = el('p', 'feat-meta', `${Math.min(QUICK, T.players.length)} players` + (counts[T.slug] ? ` · ${counts[T.slug]} ${counts[T.slug] === 1 ? 'list' : 'lists'}` : ''));
+        w.appendChild(m);
+        const d = draftOf(T.slug);
+        const a = el('a', 'btn', d ? 'Resume your list' : T.cta || 'Rank them'); a.href = BASE + T.slug + '/'; w.appendChild(a);
+        c.appendChild(w); fs.appendChild(c);
+      }
+      app.appendChild(fs);
+    }
+    // The catalog, compact, by group.
+    const order = H.groups && H.groups.length ? H.groups : [...new Set(DATA.templates.map((t) => t.group))];
+    for (const g of order) {
+      const list = DATA.templates.filter((t) => t.group === g);
+      if (!list.length) continue;
+      const sec = el('section', 'group');
+      sec.appendChild(el('h2', null, g));
+      const rows = el('div', 'catalog');
+      for (const t of list) {
+        const r = el('div', 'cat-row');
+        const h = el('a', 'cat-title', t.title); h.href = BASE + t.slug + '/';
+        const n = counts[t.slug] || 0;
+        const meta = el('span', 'cat-meta', `${Math.min(QUICK, t.players.length)} players` + (n ? ` · ${n} ${n === 1 ? 'list' : 'lists'}` : ''));
+        const d = draftOf(t.slug);
+        const go = el('a', 'cat-go', d ? 'Resume' : t.cta || 'Rank them'); go.href = BASE + t.slug + '/';
+        const cs = el('a', 'cat-cons', 'Consensus'); cs.href = BASE + t.slug + '/consensus/';
+        const left = el('div', 'cat-left'); left.append(h, meta);
+        const right = el('div', 'cat-links'); right.append(go, cs);
+        r.append(left, right); rows.appendChild(r);
+      }
+      sec.appendChild(rows); app.appendChild(sec);
     }
   }
 
   // ================= ranking =================
-  // T: a template ({slug, title, blurb, players: rows}) or a custom list
-  // ({slug: 'c:<id>', title, blurb, items: [P]}); T.make: a brand-new list
-  // (its items go to the server with the ranking, POST custom).
+  // T: a template ({slug, title, blurb, tiers?, players: rows}) or a custom
+  // list ({slug: 'c:<id>', title, blurb, items: [P]}); T.make: a brand-new
+  // list (its items go to the server with the ranking, POST custom).
+  // QUICK BOARDS (Jorge, Nov 26, 2026): a template opens at its top 10 (the
+  // order it was picked in), with "Add more players" (25, 50, All). A player
+  // placed stays placed and in his tier when the view gets smaller. Publish
+  // from 5 placed (or the whole pool, if smaller); unplaced players do not count.
+  // Everything autosaves (placements, tiers, size) in this browser.
   function rank(T) {
     const all = T.items || T.players.map(P);
-    // A template's pool in the order it was picked (best first); the page still shows it alphabetically.
+    const byAll = new Map(all.map((p) => [p.id, p]));
     const order = T.items ? all : all.slice().sort((a, b) => (a.rank || 1e6) - (b.rank || 1e6));
     const sizes = T.items ? [all.length] : sizesOf(all.length);
     const KEY = 'tl-rank-' + T.slug;
     const saved = store.get(KEY) || {};
-    let size = sizes.includes(saved.size) ? saved.size : sizes.includes(25) ? 25 : sizes[sizes.length - 1];
+    let size = sizes.includes(saved.size) ? saved.size : sizes[0];
+    const need = Math.min(5, all.length);
     let uid = 0;
     const mk = (name) => ({ key: 't' + (++uid), name });
+    const preset = tiersFor(T);
     let tiers = Array.isArray(saved.tiers) && saved.tiers.length >= TIER_MIN && saved.tiers.length <= TIER_MAX
-      ? saved.tiers.map((x) => mk(String(x.name || '').slice(0, TIER_NAME_MAX))) : TIERS.map(mk);
+      ? saved.tiers.map((x) => mk(String(x.name || '').slice(0, TIER_NAME_MAX))) : preset.map(mk);
     // Saved placements: by tier position (old saves by S to D letter).
     let place = {};
     for (const [id, v] of Object.entries(saved.place || {})) {
       const i = typeof v === 'number' ? v : TIERS.indexOf(v);
-      if (tiers[i]) place[id] = tiers[i].key;
+      if (byAll.has(id) && tiers[i]) place[id] = tiers[i].key;
     }
+    // Shown: the top N, plus anyone placed from a bigger view earlier.
     let players = [], byId = new Map();
-    function setSize() {
-      // Alphabetical on the page, the top N by the pool's own order.
+    function setView() {
       const keep = new Set(order.slice(0, size).map((p) => p.id));
+      for (const id of Object.keys(place)) keep.add(id);
       players = tileLabels(all.filter((p) => keep.has(p.id)));
       byId = new Map(players.map((p) => [p.id, p]));
     }
-    setSize();
+    setView();
     let sel = null;
 
     app.textContent = '';
     if (!T.make) app.appendChild(tabs('rank', T.slug));
     app.appendChild(el('h1', null, T.title));
     const sub = el('p', 'subtitle', (T.blurb ? T.blurb + ' ' : ''));
-    sub.appendChild(el('span', null, matchMedia('(pointer: coarse)').matches ? 'Tap a player, then tap a tier.' : 'Drag players into tiers, or click a player and then a tier.'));
+    sub.appendChild(el('span', null, matchMedia('(pointer: coarse)').matches ? 'Tap a player, then tap his tier.' : 'Drag players into tiers, or click a player and then a tier.'));
     app.appendChild(sub);
     const boardHost = el('div'); app.appendChild(boardHost);
     let b = null, zones = {};
-    const selbar = el('div', 'selbar hide'); selbar.setAttribute('aria-live', 'polite'); app.appendChild(selbar);
-    // Tiers: rename any, add or remove (2 to 10). Everything stays in the page.
-    const tsec = el('section', 'section tiers-edit');
+    // Tiers: behind "Edit tiers". Rename any, add or remove (2 to 10).
+    const editBtn = el('button', 'linkbtn edit-tiers', 'Edit tiers'); editBtn.type = 'button'; editBtn.setAttribute('aria-expanded', 'false');
+    app.appendChild(editBtn);
+    const tsec = el('section', 'section tiers-edit hide');
     const th = el('div', 'section-head'); th.appendChild(el('h2', null, 'Tiers'));
     const tcount = el('span', 'count'); th.appendChild(tcount); tsec.appendChild(th);
     const tlist = el('div', 'tier-names'); tsec.appendChild(tlist);
     const tadd = el('button', 'btn ghost small', 'Add a tier'); tadd.type = 'button';
-    const tdef = el('button', 'linkbtn', 'Back to S to D'); tdef.type = 'button';
+    const tdef = el('button', 'linkbtn', preset === TIERS ? 'Back to S to D' : 'Back to the board\'s tiers'); tdef.type = 'button';
     const trow = el('div', 'tools'); trow.append(tadd, tdef); tsec.appendChild(trow);
     app.appendChild(tsec);
+    editBtn.addEventListener('click', () => { const open = tsec.classList.toggle('hide') === false; editBtn.setAttribute('aria-expanded', String(open)); editBtn.textContent = open ? 'Done editing tiers' : 'Edit tiers'; });
     const sec = el('section', 'section');
     const head = el('div', 'section-head'); head.appendChild(el('h2', null, T.items ? 'Items' : 'Players'));
     const count = el('span', 'count'); head.appendChild(count); sec.appendChild(head);
-    // Pool size: the top 10, 25, 50 or all, by the pool's own order.
-    const sizeRow = el('div', 'share-sizes pool-size'); sizeRow.setAttribute('role', 'group'); sizeRow.setAttribute('aria-label', 'How many players');
-    const szBtn = {};
-    for (const n of sizes) {
-      const bt = el('button', null, n === all.length ? `All ${n}` : `Top ${n}`); bt.type = 'button'; szBtn[n] = bt;
-      bt.addEventListener('click', () => { size = n; setSize(); sel = null; save(); render(); });
-      sizeRow.appendChild(bt);
-    }
-    if (sizes.length > 1) { sec.appendChild(sizeRow); sec.appendChild(el('p', 'note', 'Top 10, 25 or 50 keeps the best of this pool by how it was picked; All ranks every player.')); }
     const pool = el('div', 'pool'); pool.dataset.tier = ''; sec.appendChild(pool);
+    // Add more players: 25, 50, All (the top N by the pool's own order).
+    const more = el('div', 'add-more'); const szBtn = {};
+    if (sizes.length > 1) {
+      more.appendChild(el('span', 'add-label', 'Add more players:'));
+      for (const n of sizes.slice(1)) {
+        const bt = el('button', 'btn ghost small', n === all.length ? `All ${n}` : `Top ${n}`); bt.type = 'button'; szBtn[n] = bt;
+        bt.addEventListener('click', () => { size = n; setView(); sel = null; save(); render(); });
+        more.appendChild(bt);
+      }
+      const back = el('button', 'linkbtn', 'Back to the top 10'); back.type = 'button'; szBtn[sizes[0]] = back;
+      back.addEventListener('click', () => { size = sizes[0]; setView(); sel = null; save(); render(); });
+      more.appendChild(back);
+      sec.appendChild(more);
+    }
     app.appendChild(sec);
 
     const form = el('form', 'publish'); form.autocomplete = 'off';
@@ -304,9 +378,13 @@
     const reset = el('button', 'linkbtn', 'Start over'); reset.type = 'button';
     const cons = el('a', null, T.make ? 'Change the items' : "See the fans' consensus"); cons.href = T.make ? BASE + 'make/' : /^c:/.test(T.slug) ? BASE + 'list/?c=' + T.slug.slice(2) + '&view=consensus' : BASE + T.slug + '/consensus/'; cons.style.fontSize = '.8rem';
     tools.append(reset, cons); app.appendChild(tools);
+    // The placement bar: the last thing in the page, stuck to the bottom of
+    // the screen while a player is picked, with one button per tier, so a
+    // player at the bottom of the pool is placed without scrolling up.
+    const selbar = el('div', 'selbar hide'); selbar.setAttribute('aria-live', 'polite'); selbar.setAttribute('role', 'group'); selbar.setAttribute('aria-label', 'Place the picked player');
+    app.appendChild(selbar);
 
     const save = () => store.set(KEY, { size, tiers: tiers.map((x) => ({ name: x.name })), place: Object.fromEntries(Object.entries(place).map(([id, k]) => [id, tiers.findIndex((x) => x.key === k)]).filter(([, i]) => i >= 0)) });
-    // The tier editor and the board are rebuilt when the tiers change.
     function drawTiers() {
       const built = board('edit', tiers.map((x) => x.name || ' '), tiers.map((x) => x.key));
       boardHost.textContent = ''; boardHost.appendChild(built.b); b = built.b; zones = built.zones;
@@ -320,9 +398,8 @@
         row.appendChild(inp);
         const rm = el('button', 'linkbtn', 'Remove'); rm.type = 'button'; rm.disabled = tiers.length <= TIER_MIN; rm.setAttribute('aria-label', `Remove tier ${x.name || i + 1}`);
         rm.addEventListener('click', () => {
-          // Its players go back to the pool.
           for (const [id, k] of Object.entries(place)) if (k === x.key) delete place[id];
-          tiers = tiers.filter((y) => y !== x); save(); drawTiers(); render();
+          tiers = tiers.filter((y) => y !== x); setView(); save(); drawTiers(); render();
         });
         row.appendChild(rm); tlist.appendChild(row);
       });
@@ -330,52 +407,65 @@
       tadd.disabled = tiers.length >= TIER_MAX;
     }
     tadd.addEventListener('click', () => { if (tiers.length >= TIER_MAX) return; const used = new Set(tiers.map((x) => x.name)); const next = 'SABCDEFGHIJKLMNOPQRTUVWXYZ'.split('').find((c) => !used.has(c)) || String(tiers.length + 1); tiers.push(mk(next)); save(); drawTiers(); render(); });
-    tdef.addEventListener('click', () => { const old = tiers; tiers = TIERS.map(mk); for (const [id, k] of Object.entries(place)) { const i = old.findIndex((x) => x.key === k); if (tiers[i]) place[id] = tiers[i].key; else delete place[id]; } save(); drawTiers(); render(); });
-    function render() {
+    tdef.addEventListener('click', () => { const old = tiers; tiers = preset.map(mk); for (const [id, k] of Object.entries(place)) { const i = old.findIndex((x) => x.key === k); if (tiers[i]) place[id] = tiers[i].key; else delete place[id]; } setView(); save(); drawTiers(); render(); });
+    function render(focusBar) {
       for (const x of tiers) {
         const z = zones[x.key]; if (!z) continue; z.textContent = '';
         for (const p of players) if (place[p.id] === x.key) z.appendChild(tile(p));
       }
       pool.textContent = '';
       for (const p of players) if (!place[p.id]) pool.appendChild(tile(p));
-      for (const n of sizes) szBtn[n].setAttribute('aria-pressed', String(n === size));
-      const left = players.filter((p) => !place[p.id]).length;
-      if (!left) pool.appendChild(el('span', 'done', 'Every player is ranked.'));
-      count.textContent = `${players.length - left} of ${players.length} ranked`;
+      for (const n of Object.keys(szBtn)) szBtn[n].classList.toggle('hide', +n === size || (+n < size && +n !== sizes[0]) || (+n === sizes[0] && size === sizes[0]));
+      const placed = Object.keys(place).length, left = players.filter((p) => !place[p.id]).length;
+      if (!left) pool.appendChild(el('span', 'done', sizes.length > 1 && size < all.length ? 'All shown players are placed. Add more, or publish.' : 'Every player is placed.'));
+      count.textContent = `${placed} placed · ${left} to go`;
       const badName = tiers.some((x) => !x.name.trim());
-      pub.disabled = left > 0 || badName;
-      if (!note.classList.contains('err')) note.textContent = badName ? 'Give every tier a name.' : left ? 'Place every player to publish. Your list gets its own link and a share image.' : 'Ready. Your list gets its own link and a share image.';
+      pub.disabled = placed < need || badName;
+      if (!note.classList.contains('err')) note.textContent = badName ? 'Give every tier a name.' : placed < need ? `Place at least ${need} to publish (${placed} so far). Players you leave out don't count.` : 'Ready to publish. Players you leave out don\'t count. Your list gets its own link and a share image.';
       for (const x of app.querySelectorAll('.tile')) x.classList.toggle('sel', x.dataset.id === sel);
       if (b) b.classList.toggle('armed', !!sel);
       selbar.classList.toggle('hide', !sel); selbar.textContent = '';
       const p = sel && byId.get(sel);
       if (p) {
-        selbar.appendChild(frame(p));
+        const top = el('div', 'sel-who');
+        top.appendChild(frame(p));
         const w = el('div', 'who');
         const a = el(p.link ? 'a' : 'b', null, splitName(p.name).filter(Boolean).join(' ')); if (p.link) a.href = p.link; w.appendChild(a);
         w.appendChild(el('small', null, p.team));
-        selbar.appendChild(w);
-        const act = el('div', 'act');
-        act.appendChild(el('span', 'hint', 'Tap a tier'));
-        if (place[p.id]) { const back = el('button', 'linkbtn', 'Back to players'); back.type = 'button'; back.addEventListener('click', () => move(p.id, '')); act.appendChild(back); }
-        selbar.appendChild(act);
+        top.appendChild(w);
+        const x = el('button', 'linkbtn', place[p.id] ? 'Unplace' : 'Cancel'); x.type = 'button';
+        x.addEventListener('click', () => { if (place[p.id]) move(p.id, ''); else { const id = sel; sel = null; render(); app.querySelector(`.tile[data-id="${id}"]`)?.focus(); } });
+        top.appendChild(x);
+        selbar.appendChild(top);
+        const btns = el('div', 'sel-tiers');
+        const colors = tierColors(tiers.length);
+        tiers.forEach((tr, i) => {
+          const bt = el('button', 'tier-btn' + (place[p.id] === tr.key ? ' on' : ''), tr.name || String(i + 1)); bt.type = 'button';
+          bt.style.setProperty('--c', colors[i]); bt.setAttribute('aria-label', `Put ${p.name} in ${tr.name || 'tier ' + (i + 1)}`);
+          bt.addEventListener('click', () => { const id = sel; move(id, tr.key); app.querySelector(`.tile[data-id="${id}"]`)?.focus(); });
+          btns.appendChild(bt);
+        });
+        selbar.appendChild(btns);
+        if (focusBar) btns.firstChild?.focus();
       }
     }
     function move(id, k) {
       if (k) place[id] = k; else delete place[id];
-      sel = null; note.classList.remove('err'); save(); render();
+      sel = null; note.classList.remove('err'); setView(); save(); render();
     }
-    // Tap (or click) to place: a tile selects, then a tier (or the pool) takes it.
+    // Tap (or click, or Enter) a tile to pick it; then a tier button in the
+    // bar, a tier row, or (desktop) a drag. From the keyboard the focus goes
+    // straight to the bar's first tier button.
     app.addEventListener('click', (e) => {
       if (dragged) return;
       const tl = e.target.closest('button.tile');
-      if (tl) { sel = sel === tl.dataset.id ? null : tl.dataset.id; render(); return; }
-      if (!sel) return;
+      if (tl) { sel = sel === tl.dataset.id ? null : tl.dataset.id; render(e.detail === 0 && !!sel); return; }
+      if (!sel || e.target.closest('.selbar')) return;
       const z = e.target.closest('.tier, .pool');
       if (z && app.contains(z)) move(sel, z.dataset.tier || '');
     });
-    // Keyboard: with a player selected, a tier's one-letter name (S, A, B...)
-    // or its number (1 to 9, 0 for the tenth) places him; Backspace sends him back.
+    // Keyboard: with a player picked, a tier's one-letter name or its number
+    // (1 to 9, 0 for the tenth) places him; Backspace unplaces; Escape cancels.
     document.addEventListener('keydown', (e) => {
       if (!sel || e.target === name || (e.target && e.target.tagName === 'INPUT')) return;
       const k = e.key.toUpperCase();
@@ -384,7 +474,7 @@
       const to = byName || byNum;
       if (to) { e.preventDefault(); const id = sel; move(id, to.key); app.querySelector(`.tile[data-id="${id}"]`)?.focus(); }
       else if (e.key === 'Backspace') { e.preventDefault(); move(sel, ''); }
-      else if (e.key === 'Escape') { sel = null; render(); }
+      else if (e.key === 'Escape') { const id = sel; sel = null; render(); app.querySelector(`.tile[data-id="${id}"]`)?.focus(); }
     });
     // Drag with a mouse or pen (desktop). Touch stays tap-to-place, so a
     // finger on a tile still scrolls the page.
@@ -413,11 +503,13 @@
       }
       start = null;
     });
-    reset.addEventListener('click', () => { place = {}; sel = null; save(); render(); });
+    reset.addEventListener('click', () => { place = {}; sel = null; setView(); save(); render(); });
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (players.some((p) => !place[p.id]) || tiers.some((x) => !x.name.trim())) return;
-      const out = tiers.map((x) => ({ name: x.name.trim(), ids: players.filter((p) => place[p.id] === x.key).map((p) => p.id) }));
+      const placedIds = Object.keys(place);
+      if (placedIds.length < need || tiers.some((x) => !x.name.trim())) return;
+      // Only what was placed, in the pool's own order inside each tier.
+      const out = tiers.map((x) => ({ name: x.name.trim(), ids: all.filter((p) => place[p.id] === x.key).map((p) => p.id) }));
       pub.disabled = true; note.classList.remove('err'); note.textContent = 'Publishing...';
       try {
         const r = T.make ? await api('custom', { device: device(), title: T.title, name: name.value.trim() || null, items: T.make, tiers: out })
@@ -432,7 +524,7 @@
         location.href = listHref(T.make ? 'c:' : T.slug, r.id);
       } catch (x) {
         const m = { bad_name: "That name can't be used. Try another, or leave it blank.", too_many: 'Too many lists from here today. Try again tomorrow.', bad_tiers: 'Something is off with this list. Reload the page and try again.',
-          bad_tier_name: "One of the tier names can't be used. Change it and try again.",
+          too_few: `Place at least ${need} to publish.`, bad_tier_name: "One of the tier names can't be used. Change it and try again.",
           bad_title_word: "That title can't be used. Change it and try again.", bad_item_word: "One of the typed items can't be used. Change it and try again.", bad_items: 'Something is off with the items. Go back and check them.', not_yet: 'Making your own list is not open yet.' };
         note.classList.add('err'); note.textContent = m[x.message] || "Couldn't publish right now. Try again in a minute.";
         pub.disabled = false;

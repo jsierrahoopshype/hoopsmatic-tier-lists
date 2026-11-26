@@ -1,0 +1,6 @@
+{
+ "_about": "The homepage's featured debate (Jorge, Nov 26, 2026): the question in big type, one player's headshot, and the board's own tiers as the answer buttons. Tapping one places him on that board, saves the draft and opens it. Change it here; scripts/build-templates.mjs checks the player is in the board's top 10 and copies it to public/hero.json.",
+ "question": "Is Wemby in your MVP tier?",
+ "board": "2026-27-mvp-race",
+ "player": "victor-wembanyama"
+}

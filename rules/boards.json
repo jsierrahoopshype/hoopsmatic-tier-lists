@@ -1,0 +1,37 @@
+{
+ "_about": "How each template is presented (Jorge, Nov 26, 2026): cta = the button that names the board; tiers = its preset tier names, top first (missing: S to D); catalog groups in order. scripts/build-templates.mjs copies these into public/templates.json.",
+ "groups": { "This season": "This season", "All-time": "All-time", "By decade": "By decade", "Franchise": "Teams", "Draft class": "Draft classes" },
+ "groupOrder": ["This season", "All-time", "By decade", "Teams", "Draft classes"],
+ "boards": {
+  "2026-27-mvp-race": { "cta": "Rank the MVP race", "tiers": ["MVP favorite", "In the race", "Outside the race"] },
+  "2026-27-rookie-of-the-year-race": { "cta": "Rank the rookie race", "tiers": ["Favorite", "In the mix", "Long shot"] },
+  "best-players-right-now": { "cta": "Rank the best right now" },
+  "best-young-players": { "cta": "Rank the best young players" },
+  "best-players-of-the-1980s": { "cta": "Rank the 1980s" },
+  "best-players-of-the-1990s": { "cta": "Rank the 1990s" },
+  "best-players-of-the-2000s": { "cta": "Rank the 2000s" },
+  "best-point-guards-of-the-2010s": { "cta": "Rank the 2010s point guards" },
+  "best-centers-of-the-1990s": { "cta": "Rank the 1990s centers" },
+  "best-forwards-of-the-2000s": { "cta": "Rank the 2000s forwards" },
+  "best-point-guards-of-all-time": { "cta": "Rank the point guards" },
+  "best-centers-of-all-time": { "cta": "Rank the centers" },
+  "best-three-point-shooters-of-all-time": { "cta": "Rank the shooters" },
+  "best-defenders-of-all-time": { "cta": "Rank the defenders" },
+  "best-international-players-of-all-time": { "cta": "Rank the international stars" },
+  "celtics-all-time": { "cta": "Rank the Celtics", "tiers": ["Franchise icon", "All-time great", "Fan favorite", "Role player"] },
+  "lakers-all-time": { "cta": "Rank the Lakers", "tiers": ["Franchise icon", "All-time great", "Fan favorite", "Role player"] },
+  "bulls-all-time": { "cta": "Rank the Bulls", "tiers": ["Franchise icon", "All-time great", "Fan favorite", "Role player"] },
+  "warriors-all-time": { "cta": "Rank the Warriors", "tiers": ["Franchise icon", "All-time great", "Fan favorite", "Role player"] },
+  "knicks-all-time": { "cta": "Rank the Knicks", "tiers": ["Franchise icon", "All-time great", "Fan favorite", "Role player"] },
+  "spurs-all-time": { "cta": "Rank the Spurs", "tiers": ["Franchise icon", "All-time great", "Fan favorite", "Role player"] },
+  "heat-all-time": { "cta": "Rank the Heat", "tiers": ["Franchise icon", "All-time great", "Fan favorite", "Role player"] },
+  "mavericks-all-time": { "cta": "Rank the Mavericks", "tiers": ["Franchise icon", "All-time great", "Fan favorite", "Role player"] },
+  "2003-draft-class": { "cta": "Rank the 2003 draft class" },
+  "1996-draft-class": { "cta": "Rank the 1996 draft class" }
+ },
+ "featured": [
+  { "slug": "lakers-all-time", "look": "lakers", "line": "Magic or Kobe at the top? Shaq or Kareem? Every Lakers great, one board." },
+  { "slug": "best-centers-of-the-1990s", "look": "centers", "line": "Hakeem, Shaq, Ewing, Robinson, Mutombo: the decade of the big man." },
+  { "slug": "2003-draft-class", "look": "draft", "line": "LeBron, Melo, Wade, Bosh, and everyone picked after them." }
+ ]
+}

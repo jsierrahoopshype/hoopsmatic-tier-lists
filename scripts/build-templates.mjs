@@ -176,6 +176,7 @@ async function checkHeads(ids) {
 
 // ---------- build ----------
 const EDITS = readJson('rules/edits.json', { templates: {} }).templates;
+const BOARDS = readJson('rules/boards.json', { groups: {}, boards: {}, featured: [], groupOrder: [] });
 const PINS = readJson('rules/pins.json', { templates: {} }).templates;
 const last = (n) => n.replace(/ (Jr\.|Sr\.|II|III|IV)$/, '').split(' ').slice(1).join(' ') || n;
 const out = [], problems = [];
@@ -302,7 +303,8 @@ const templates = out.map(({ t, pool }) => {
     return [p.id, p.name, hasPhoto ? p.nba : 0, p.link || '', teamLabel(p, t.w, t.code), rank + 1];
   }).sort((a, b) => last(a[1]).localeCompare(last(b[1])) || a[1].localeCompare(b[1]));
   for (const r of list) if (!r[3]) problems.push(`${t.slug}: ${r[1]} has no HoopsMatic page`);
-  return { slug: t.slug, title: t.title, group: t.group, blurb: t.blurb, players: list };
+  const bd = BOARDS.boards[t.slug] || {};
+  return { slug: t.slug, title: t.title, group: BOARDS.groups[t.group] || t.group, blurb: t.blurb, cta: bd.cta || 'Rank them', ...(bd.tiers ? { tiers: bd.tiers } : {}), players: list };
 });
 const sorted = (o) => Object.fromEntries(Object.entries(o).sort(([a], [b]) => (isNaN(a) ? a.localeCompare(b) : a - b)));
 writeFileSync(ROOT + 'data/nba-ids.json', JSON.stringify(sorted(idCache)) + '\n');
@@ -311,6 +313,16 @@ writeFileSync(ROOT + 'public/templates.json', JSON.stringify({
   _about: 'Tier Lists templates (scripts/build-templates.mjs). players, shown alphabetically: [id, name, NBA.com person id with a real photo or 0, HoopsMatic page, team as it was, order (1 = best, how the pool was picked; a top 10/25/50 list ranks the first N)]. The tier-lists server checks every published list against this file.',
   v: 1, tiers: ['S', 'A', 'B', 'C', 'D'], templates,
 }) + '\n');
+// The homepage: the featured debate (rules/hero.json), three featured boards
+// and the catalog's group order (rules/boards.json), in public/hero.json.
+{
+  const H = readJson('rules/hero.json', null);
+  const T0 = H && templates.find((x) => x.slug === H.board);
+  const top10 = T0 ? T0.players.slice().sort((a, b) => a[5] - b[5]).slice(0, 10).map((r) => r[0]) : [];
+  if (!T0 || !top10.includes(H.player)) problems.push(`rules/hero.json: ${H && H.player} must be in the top 10 of ${H && H.board}`);
+  for (const f of BOARDS.featured) if (!templates.some((x) => x.slug === f.slug)) problems.push(`rules/boards.json: featured ${f.slug} is not a template`);
+  writeFileSync(ROOT + 'public/hero.json', JSON.stringify({ _about: 'The homepage (rules/hero.json, rules/boards.json).', hero: H && { question: H.question, board: H.board, player: H.player }, featured: BOARDS.featured, groups: BOARDS.groupOrder }) + '\n');
+}
 if (problems.length) { console.error(problems.join('\n')); process.exit(1); }
 console.log(`templates ${templates.length}, player slots ${slots}, with a real photo ${photo} (${(100 * photo / slots).toFixed(1)}%), name-only ${slots - photo}`);
 if (process.argv.includes('--list')) for (const t of templates) console.log(`\n## ${t.title} (${t.players.length})\n` + t.players.map((r) => `${r[1]}${r[2] ? '' : ' [name only]'} · ${r[4]}`).join('\n'));
