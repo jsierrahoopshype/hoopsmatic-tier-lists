@@ -14,7 +14,10 @@
   const BASE = '/tier-lists/';
   const API = BASE + 'api/';
   const SITE = 'https://hoopsmatic.com' + BASE;
-  const NBA = 'https://cdn.nba.com/headshots/nba/latest/260x190/';
+  // NBA.com's 260x190 cutouts through hoopsmatic.com/img/nba-cdn/: the same
+  // file, except that NBA.com's grey silhouette is a 404 there, so it takes
+  // the no-photo path (the frame shows the name; a category row, no picture).
+  const NBA = 'https://hoopsmatic.com/img/nba-cdn/260x190/';
   const TIERS = ['S', 'A', 'B', 'C', 'D'];
   // TIERS (Jorge, Nov 26, 2026): 2 to 10 per list, top to bottom, each renamed
   // up to 20 characters (the server filters the words). Colours follow the
@@ -126,7 +129,8 @@
   }
   const lastName = (full) => splitName(full)[1];
   // The frame: NBA.com's cutout bottom-aligned on light grey; with no real
-  // photo (or one that fails to load) the name sits inside instead.
+  // photo (or one that fails to load, NBA.com's silhouette included) the name
+  // sits inside instead.
   function frame(p) {
     const box = el('span', 'ph');
     if (p.text) { box.classList.add('nophoto', 'text'); box.appendChild(el('span', 'ln', p.name)); return box; }

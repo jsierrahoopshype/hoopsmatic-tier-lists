@@ -13,8 +13,11 @@
 // grey, Puzzle Maker's frame. NBA person ids come from NBA Head to Head's
 // data/search.json ([id, name, slug, firstSeasonStart, lastSeasonStart, ...]),
 // matched by name and first season (namesakes). NBA.com answers an id it has
-// no photo for with a grey silhouette (same md5 every time): those players get
-// a name-only tile. Both lookups are cached in data/nba-ids.json and
+// no photo for with a grey silhouette, the same file as its ID 0: a response
+// byte-identical (SHA-256) to that size's ID 0 file is no photo, and those
+// players get a name-only tile. Build scripts fetch cdn.nba.com directly
+// (hoopsmatic.com shows GitHub runners a bot check); the page loads the same
+// files through hoopsmatic.com/img/nba-cdn/. Both lookups are cached in data/nba-ids.json and
 // data/head-check.json (committed), so a rebuild only asks about new players.
 //
 // Team under each name: the era name for the template's window (or franchise),
@@ -159,16 +162,31 @@ async function nbaIdOf(p) {
   return (idCache[p.id] = hit ? hit[0] : 0);
 }
 // ---------- real photo or silhouette ----------
-const SILHOUETTE = new Set(['7475ba9619305909d7998dd9dba02481']);   // NBA.com's 260x190 placeholder (Nov 2026)
+const CDN = 'https://cdn.nba.com/headshots/nba/latest/260x190/';
+const sha256 = (buf) => createHash('sha256').update(buf).digest('hex');
+// The silhouette: this size's ID 0 file, fetched when there is something to check.
+async function silhouette() {
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const r = await fetch(CDN + '0.png');
+      if (r.ok) return sha256(Buffer.from(await r.arrayBuffer()));
+    } catch (e) { /* retry */ }
+    await new Promise((res) => setTimeout(res, 1000 * attempt));
+  }
+  return null;
+}
 const heads = readJson('data/head-check.json', {});
 async function checkHeads(ids) {
   const todo = [...new Set(ids.filter((id) => id && !(id in heads)))];
+  // Without the silhouette to compare against, nothing new is checked this run.
+  const SILHOUETTE = todo.length ? await silhouette() : null;
+  if (!SILHOUETTE) return;
   for (let i = 0; i < todo.length; i += 16) {
     await Promise.all(todo.slice(i, i + 16).map(async (id) => {
       try {
-        const r = await fetch(`https://cdn.nba.com/headshots/nba/latest/260x190/${id}.png`);
+        const r = await fetch(`${CDN}${id}.png`);
         if (!r.ok) { if (r.status === 404 || r.status === 403) heads[id] = 0; return; }
-        heads[id] = SILHOUETTE.has(createHash('md5').update(Buffer.from(await r.arrayBuffer())).digest('hex')) ? 0 : 1;
+        heads[id] = sha256(Buffer.from(await r.arrayBuffer())) === SILHOUETTE ? 0 : 1;
       } catch (e) { /* network: unknown this run, asked again next build */ }
     }));
   }
